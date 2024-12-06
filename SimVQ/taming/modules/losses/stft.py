@@ -40,13 +40,13 @@ class VQSTFTWithDiscriminator(nn.Module):
         self.disc_factor = disc_factor
         self.discriminator_weight = disc_weight
                     
-    def forward(self, codebook_loss, loss_break, inputs, reconstructions, optimizer_idx,
+    def forward(self, embeding_loss,codebook_loss, loss_break, inputs, reconstructions, optimizer_idx,
                 global_step, last_layer=None, cond=None, split="train"):
         
         # now the GAN part
         if optimizer_idx == 0:
             # generator update
-            
+        
             loss_dac_1, loss_dac_2 = self.dacdiscriminator.generator_loss(reconstructions, inputs)
             
             _, gen_score_mp, fmap_rs_mp, fmap_gs_mp = self.multiperioddisc(
@@ -71,7 +71,8 @@ class VQSTFTWithDiscriminator(nn.Module):
                 + loss_fm_mp
                 + self.mrd_loss_coeff * loss_fm_mrd
                 + loss_dac_1
-                + loss_dac_2)
+                + loss_dac_2
+                + embeding_loss)
                 + self.mel_loss_coeff * mel_loss
                 + self.commit_weight * loss_break.commitment
             )
@@ -85,6 +86,7 @@ class VQSTFTWithDiscriminator(nn.Module):
                     "{}/feature_matching_mrd".format(split): loss_fm_mrd.detach(),
                     "{}/loss_dac_1".format(split): loss_dac_1.detach(),
                     "{}/loss_dac_2".format(split): loss_dac_2.detach(),
+                    "{}/embeding_loss".format(split): embeding_loss.detach(),
                     }
 
             return loss, log

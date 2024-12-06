@@ -2,6 +2,18 @@ import torch
 import torch.nn.functional as F
 import lightning as L
 import math
+import sys
+sys.path.insert(0,'/root/Github/3D-Speaker')
+from speakerlab.utils.builder import dynamic_import
+import os
+import re
+import pathlib
+import numpy as np
+import torch
+
+
+from modelscope.hub.snapshot_download import snapshot_download
+from modelscope.pipelines.util import is_official_hub_path
 from main import instantiate_from_config
 from contextlib import contextmanager
 
@@ -122,6 +134,72 @@ class VQModel(L.LightningModule):
 
         self.strict_loading = False
 
+        CAMPPLUS_VOX = {
+            'obj': 'speakerlab.models.campplus.DTDNN.CAMPPlus',
+            'args': {
+                'feat_dim': 80,
+                'embedding_size': 512,
+            },
+        }
+
+        CAMPPLUS_COMMON = {
+            'obj': 'speakerlab.models.campplus.DTDNN.CAMPPlus',
+            'args': {
+                'feat_dim': 80,
+                'embedding_size': 192,
+            },
+        }
+        supports = {
+            # CAM++ trained on 200k labeled speakers
+            'iic/speech_campplus_sv_zh-cn_16k-common': {
+                'revision': 'v1.0.0', 
+                'model': CAMPPLUS_COMMON,
+                'model_pt': 'campplus_cn_common.bin',
+            },
+            # CAM++ trained on a large-scale Chinese-English corpus
+            'iic/speech_campplus_sv_zh_en_16k-common_advanced': {
+                'revision': 'v1.0.0', 
+                'model': CAMPPLUS_COMMON,
+                'model_pt': 'campplus_cn_en_common.pt',
+            },
+            # CAM++ trained on VoxCeleb
+            'iic/speech_campplus_sv_en_voxceleb_16k': {
+                'revision': 'v1.0.2', 
+                'model': CAMPPLUS_VOX, 
+                'model_pt': 'campplus_voxceleb.bin', 
+            },
+        }
+
+        model_id='iic/speech_campplus_sv_zh-cn_16k-common'
+        save_dir = os.path.join("pretrained", "pretrained/speech_campplus_sv_zh-cn_16k-common")
+        save_dir = pathlib.Path(save_dir)
+        save_dir.mkdir(exist_ok=True, parents=True)
+        conf = supports["iic/speech_campplus_sv_zh-cn_16k-common"]
+        cache_dir = snapshot_download(
+                    model_id,
+                    revision=conf['revision'],
+            )
+        cache_dir = pathlib.Path(cache_dir)
+        embedding_dir = save_dir / 'embeddings'
+        embedding_dir.mkdir(exist_ok=True, parents=True)
+        download_files = ['examples', conf['model_pt']]
+        for src in cache_dir.glob('*'):
+            if re.search('|'.join(download_files), src.name):
+                dst = save_dir / src.name
+                try:
+                    dst.unlink()
+                except FileNotFoundError:
+                    pass
+                dst.symlink_to(src)
+        pretrained_model = save_dir / conf['model_pt']
+        pretrained_state = torch.load(pretrained_model, map_location='cpu')
+        model = conf['model']
+        self.embedding_model = dynamic_import(model['obj'])(**model['args'])
+        self.embedding_model.load_state_dict(pretrained_state)
+        self.embedding_model.eval()
+        import torchaudio
+        self.resampler = torchaudio.transforms.Resample(orig_freq=24000, new_freq=16000)
+
     @contextmanager
     def ema_scope(self, context=None):
         if self.use_ema:
@@ -177,6 +255,32 @@ class VQModel(L.LightningModule):
             missing_keys, unexpected_keys = self.load_state_dict(sd, strict=False)
         print(f"Restored from {path}")
 
+    def resample_batch(self,wav, original_sample_rate, target_sample_rate=16000):
+        batch_size, channels, _ = wav.shape
+        resampled_wav = torch.stack([
+            self.resampler(wav[i]) for i in range(batch_size)
+        ])
+        return resampled_wav
+    
+    def embedding(self, wav):
+        original_sample_rate = 24000
+        target_sample_rate = 16000
+        wav = self.resample_batch(wav, original_sample_rate, target_sample_rate)
+        
+        from taming.modules.processor import FBank
+        feature_extractor = FBank(80, sample_rate=16000, mean_nor=True)
+        feat = feature_extractor(wav)
+        # compute embedding
+        with torch.no_grad():
+            embedding = self.embedding_model(feat)
+        return embedding
+    
+    def embedding_loss(self, x, xrec):
+        x_embeding=self.embedding(x)
+        xrec_embeding=self.embedding(xrec)
+        embedingloss = F.mse_loss(x_embeding, xrec_embeding)
+        return embedingloss
+
     def encode(self, x):
         if self.audio_normalize:
             mono = x.mean(dim=1, keepdim=True)
@@ -219,7 +323,7 @@ class VQModel(L.LightningModule):
     def training_step(self, batch, batch_idx):
         x = self.get_input(batch)
         xrec, eloss, loss_break = self(x)
-
+        embedingloss = self.embedding_loss(x,xrec)
         opt_gen, opt_disc = self.optimizers()
         # scheduler_gen, scheduler_disc = self.lr_schedulers()
         if self.scheduler_type != "None":
@@ -234,7 +338,7 @@ class VQModel(L.LightningModule):
         ####################
         
         # optimize generator
-        aeloss, log_dict_ae = self.loss(eloss, loss_break, x, xrec, 0, self.global_step,
+        aeloss, log_dict_ae = self.loss(embedingloss,eloss, loss_break, x, xrec, 0, self.global_step,
                                         split="train")
         opt_gen.zero_grad()
         self.manual_backward(aeloss)
@@ -245,7 +349,7 @@ class VQModel(L.LightningModule):
         log_dict_ae["train/codebook_util"] = torch.tensor(sum(self.codebook_count) / len(self.codebook_count))
         
         # optimize discriminator
-        discloss, log_dict_disc = self.loss(eloss, loss_break, x, xrec, 1, self.global_step,
+        discloss, log_dict_disc = self.loss(embedingloss,eloss, loss_break, x, xrec, 1, self.global_step,
                                             split="train")
         opt_disc.zero_grad()
         self.manual_backward(discloss)
