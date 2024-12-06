@@ -86,7 +86,7 @@ class VQModel(L.LightningModule):
         self.head = FourierHead(
             dim=768,
             n_fft=1280,
-            hop_length=960,
+            hop_length=480,
             padding="same"
         )
         # self.VideoMLP=VideoMLP(10,75)
