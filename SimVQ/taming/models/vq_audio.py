@@ -77,18 +77,18 @@ class VQModel(L.LightningModule):
             num_layers=12,
             adanorm_num_embeddings=None # only one quantizer layer so no adanorm required
         )
-        # self.head = FourierHead(
-        #     dim=768,
-        #     n_fft=1280,
-        #     hop_length=320,
-        #     padding="same"
-        # )
         self.head = FourierHead(
             dim=768,
             n_fft=1280,
-            hop_length=480,
+            hop_length=320,
             padding="same"
         )
+        # self.head = FourierHead(
+        #     dim=768,
+        #     n_fft=1280,
+        #     hop_length=480,
+        #     padding="same"
+        # )
         # self.VideoMLP=VideoMLP(10,75)
         # self.VideoConv=VideoConv(75)
         # self.head = FourierHead(
