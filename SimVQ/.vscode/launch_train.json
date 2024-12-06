@@ -5,16 +5,18 @@
         "name": "Python: Debug main.py",
         "type": "python",
         "request": "launch",
-        "program": "${workspaceFolder}/evaluation_speech_speedtest.py",
+        "program": "${workspaceFolder}/main.py",
         "args": [
-          "--config_file","/root/Github/SimVQ/vq_audio_log/simvq_1k/config.yaml",
-          "--ckpt_path","/root/Github/SimVQ/vq_audio_log/simvq_1k/epoch=3-step=6648.ckpt"
+          "fit",
+          "--config",
+          "configs/libritts_262khz_25.yaml"
         ],
         "env": {
           "XDG_CACHE_HOME": "/mnt/nfs3/zhangjinouwen/dataset/imagenet_2012",
           "DATA_ROOT":"/mnt/nfs3/zhangjinouwen/dataset/LibriTTS",
         },
         "console": "integratedTerminal",
+        "justMyCode": false
       }
     ]
   }
