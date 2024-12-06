@@ -4,7 +4,7 @@ trainer:
   strategy: ddp_find_unused_parameters_true
   devices: 1
   num_nodes: 1
-  precision: 16-mixed
+  precision: 32
   max_epochs: 50
   check_val_every_n_epoch: 1
   num_sanity_val_steps: 0
@@ -12,7 +12,7 @@ trainer:
   callbacks:
     - class_path: lightning.pytorch.callbacks.ModelCheckpoint
       init_args:
-        dirpath: "vq_audio_log_1/simvq_1k" # Please specify your own path
+        dirpath: "vq_audio_log/simvq_1k" # Please specify your own path
         save_top_k: -1 # save all checkpoints
     - class_path: lightning.pytorch.callbacks.LearningRateMonitor
       init_args:
@@ -22,7 +22,7 @@ trainer:
     init_args:
       project: "test"         
       name: "1k_base" 
-      save_dir: "vq_audio_log_1/simvq_1k" 
+      save_dir: "vq_audio_log/simvq_1k" 
 
 model:
   class_path: taming.models.vq_audio.VQModel
@@ -30,7 +30,6 @@ model:
     ddconfig:
       causal: true
       dimension: 512
-      ratios: [12, 10, 5, 4]
     
     quantconfig:
       target: taming.modules.vqvae.quantize.SimVQ1D
@@ -64,8 +63,8 @@ model:
 data:
   class_path: main.PadDataModuleFromConfig
   init_args:
-    batch_size: 20
-    num_workers: 4
+    batch_size: 64
+    num_workers: 8
     train:
       target: taming.data.libritts.LibriTTSTrain
       params:
