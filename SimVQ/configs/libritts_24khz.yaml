@@ -21,7 +21,7 @@ trainer:
     class_path: lightning.pytorch.loggers.WandbLogger
     init_args:
       project: "test"         
-      name: "try_1" 
+      name: "1k_base" 
       save_dir: "vq_audio_log_1/simvq_1k" 
 
 model:

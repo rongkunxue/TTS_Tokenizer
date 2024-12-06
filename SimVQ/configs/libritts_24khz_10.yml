@@ -4,7 +4,7 @@ trainer:
   strategy: ddp_find_unused_parameters_true
   devices: 4
   num_nodes: 1
-  precision: 32
+  precision: 16-mixed
   max_epochs: 50
   check_val_every_n_epoch: 1
   num_sanity_val_steps: 0
@@ -12,7 +12,7 @@ trainer:
   callbacks:
     - class_path: lightning.pytorch.callbacks.ModelCheckpoint
       init_args:
-        dirpath: "vq_audio_log/256k_ration_25" # Please specify your own path
+        dirpath: "vq_audio_log_1/change_rations"
         save_top_k: -1 # save all checkpoints
     - class_path: lightning.pytorch.callbacks.LearningRateMonitor
       init_args:
@@ -20,9 +20,9 @@ trainer:
   logger:
     class_path: lightning.pytorch.loggers.WandbLogger
     init_args:
-      project: "vae_tts_ddp"         
-      name: "256k_ration_25" 
-      save_dir: "vq_audio_log/256k_ration_25" 
+      project: "test"         
+      name: "1k_rations_10" 
+      save_dir: "vq_audio_log_1/change_rations"
 
 model:
   class_path: taming.models.vq_audio.VQModel
@@ -30,12 +30,12 @@ model:
     ddconfig:
       causal: true
       dimension: 512
-      ratios: [8,6,5,4]
+      ratios: [12, 10, 5, 4]
     
     quantconfig:
       target: taming.modules.vqvae.quantize.SimVQ1D
       params:
-        n_e: 262144
+        n_e: 1024
         e_dim: 512
         beta: 0.25
         legacy: false
@@ -65,7 +65,7 @@ data:
   class_path: main.PadDataModuleFromConfig
   init_args:
     batch_size: 64
-    num_workers: 8
+    num_workers: 4
     train:
       target: taming.data.libritts.LibriTTSTrain
       params:

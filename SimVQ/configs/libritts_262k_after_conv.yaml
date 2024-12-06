@@ -2,9 +2,9 @@ seed_everything: true
 trainer:
   accelerator: gpu
   strategy: ddp_find_unused_parameters_true
-  devices: 1
+  devices: 4
   num_nodes: 1
-  precision: 16-mixed
+  precision: 32
   max_epochs: 50
   check_val_every_n_epoch: 1
   num_sanity_val_steps: 0
@@ -12,7 +12,7 @@ trainer:
   callbacks:
     - class_path: lightning.pytorch.callbacks.ModelCheckpoint
       init_args:
-        dirpath: "vq_audio_log/simvq_262k_after_conv" # Please specify your own path
+        dirpath: "vq_audio_log/simvq_262k_after_conv_4" # Please specify your own path
         save_top_k: -1 # save all checkpoints
     - class_path: lightning.pytorch.callbacks.LearningRateMonitor
       init_args:
@@ -20,9 +20,9 @@ trainer:
   logger:
     class_path: lightning.pytorch.loggers.WandbLogger
     init_args:
-      project: "vae_tts"         
-      name: "256k_after_conv" 
-      save_dir: "vq_audio_log/simvq_262k_after_conv" 
+      project: "test"         
+      name: "256k_after_conv_4" 
+      save_dir: "vq_audio_log/simvq_262k_after_conv_4" 
 
 model:
   class_path: taming.models.vq_audio.VQModel

@@ -12,7 +12,7 @@ trainer:
   callbacks:
     - class_path: lightning.pytorch.callbacks.ModelCheckpoint
       init_args:
-        dirpath: "vq_audio_log/256k_ration_50" # Please specify your own path
+        dirpath: "vq_audio_log/256k_ration_25" # Please specify your own path
         save_top_k: -1 # save all checkpoints
     - class_path: lightning.pytorch.callbacks.LearningRateMonitor
       init_args:
@@ -20,9 +20,9 @@ trainer:
   logger:
     class_path: lightning.pytorch.loggers.WandbLogger
     init_args:
-      project: "vae_tts_ddp"         
-      name: "256k_ration_50" 
-      save_dir: "vq_audio_log/256k_ration_50" 
+      project: "vae_test"         
+      name: "256k_ration_25" 
+      save_dir: "vq_audio_log/256k_ration_25" 
 
 model:
   class_path: taming.models.vq_audio.VQModel
@@ -30,7 +30,7 @@ model:
     ddconfig:
       causal: true
       dimension: 512
-      ratios: [6,4,4,5]
+      ratios: [8,6,5,4]
     
     quantconfig:
       target: taming.modules.vqvae.quantize.SimVQ1D

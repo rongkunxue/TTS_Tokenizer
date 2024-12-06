@@ -17,7 +17,7 @@ import importlib
 from omegaconf import OmegaConf
 import argparse
 from torch import utils
-data_path_str="seedtts_testset"
+data_path_str="/mnt/afs/xrk/seedtts_testset"
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 def load_config(config_path, display=False):
