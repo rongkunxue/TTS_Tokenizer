@@ -2,7 +2,7 @@ seed_everything: true
 trainer:
   accelerator: gpu
   strategy: ddp_find_unused_parameters_true
-  devices: 1
+  devices: 4
   num_nodes: 1
   precision: 32
   max_epochs: 50
@@ -18,11 +18,11 @@ trainer:
       init_args:
         logging_interval: step
   logger:
-    class_path: lightning.pytorch.loggers.WandbLogger
+    class_path: lightning.pytorch.loggers.TensorBoardLogger
     init_args:
-      project: "test"         
-      name: "262k_ration_25" 
-      save_dir: "vq_audio_log/262k_ration_25" 
+      save_dir: "vq_audio_log/262k_ration_25" #Please specify your own path
+      version: "1second"
+      name: "tmp"
 
 model:
   class_path: taming.models.vq_audio.VQModel
@@ -64,7 +64,7 @@ model:
 data:
   class_path: main.PadDataModuleFromConfig
   init_args:
-    batch_size: 64
+    batch_size: 20
     num_workers: 8
     train:
       target: taming.data.libritts.LibriTTSTrain

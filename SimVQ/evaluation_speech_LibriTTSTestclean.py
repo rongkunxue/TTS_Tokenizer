@@ -18,7 +18,7 @@ from omegaconf import OmegaConf
 import argparse
 from torch import utils
 
-data_path_str="/mnt/afs/chenyun/code/CosyVoice/examples/libritts/LibriTTS/"
+data_path_str="/mnt/nfs3/zhangjinouwen/dataset/LibriTTS"
 
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
