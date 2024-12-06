@@ -2,7 +2,7 @@ seed_everything: true
 trainer:
   accelerator: gpu
   strategy: ddp_find_unused_parameters_true
-  devices: 1
+  devices: 4
   num_nodes: 1
   precision: 32
   max_epochs: 50
@@ -20,7 +20,7 @@ trainer:
   logger:
     class_path: lightning.pytorch.loggers.WandbLogger
     init_args:
-      project: "test"         
+      project: "tmp"         
       name: "262k_ration_25" 
       save_dir: "vq_audio_log/262k_ration_25" 
 
