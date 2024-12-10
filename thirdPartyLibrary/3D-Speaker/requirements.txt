@@ -10,3 +10,6 @@ pyyaml
 matplotlib
 pandas
 openpyxl
+addict
+oss2
+datasets==2.16.0
