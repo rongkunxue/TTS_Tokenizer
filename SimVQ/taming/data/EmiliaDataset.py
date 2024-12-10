@@ -7,7 +7,7 @@ import lightning as L
 from datasets import load_dataset
 from torch.utils.data import IterableDataset
 from torchaudio.transforms import Resample
-
+from huggingface_hub import login
 class EmiliaDataset(IterableDataset):
     def __init__(self,clip_seconds=-1,transform=None):
         path = "ZH/*.tar"
@@ -66,6 +66,7 @@ class EmiliaDataModule(L.LightningDataModule):
         pass
 
     def setup(self, stage):
+        login("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")
         if stage == "fit" or stage is None:
             self.train = EmiliaDataset(1)
         if stage == "test" or stage is None:
