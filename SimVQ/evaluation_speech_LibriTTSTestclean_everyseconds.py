@@ -12,7 +12,7 @@ import math
 from pystoi import stoi
 from pathlib import Path
 from tqdm import tqdm
-from taming.data.easy_libritts import  LibriTTSTestClean
+from taming.data.easylibritts import  LibriTTSTestClean
 import importlib
 from omegaconf import OmegaConf
 import argparse

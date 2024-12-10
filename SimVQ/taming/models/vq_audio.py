@@ -310,8 +310,8 @@ class VQModel(L.LightningModule):
                                      list(self.loss.dac.parameters()),
                                     lr=lr, betas=(0.5, 0.9))
         if self.trainer.is_global_zero:
-            print("step_per_epoch: {}".format(len(self.trainer.datamodule._train_dataloader()) // self.trainer.world_size))
-        step_per_epoch  = len(self.trainer.datamodule._train_dataloader()) // self.trainer.world_size
+            print("step_per_epoch: {}".format(len(self.trainer.datamodule.train_dataloader()) // self.trainer.world_size))
+        step_per_epoch  = len(self.trainer.datamodule.train_dataloader()) // self.trainer.world_size
         warmup_steps = step_per_epoch * self.warmup_epochs
         training_steps = step_per_epoch * self.trainer.max_epochs
 

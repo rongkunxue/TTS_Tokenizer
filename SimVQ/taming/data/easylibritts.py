@@ -8,14 +8,58 @@ import librosa
 import torch
 import random
 import torchaudio
+import lightning as L
+from torch.utils.data import Dataset, DataLoader
+
+
+class LibriTTSDataModule(L.LightningDataModule):
+    def __init__(self, batch_size=20, num_workers=8,dataset_path="/mnt/nfs3/zhangjinouwen/dataset/LibriTTS"):
+        super(LibriTTSDataModule).__init__()
+        self.batch_size = batch_size
+        self.num_workers = num_workers
+        self.dataset_path = dataset_path
+        self.prepare_data_per_node = True
+        self._log_hyperparams=False
+        self.allow_zero_length_dataloader_with_multiple_devices = False 
+
+    def pad_collate_fn(self,batch):
+        """Collate function for padding sequences."""
+        return {
+            "waveform": torch.nn.utils.rnn.pad_sequence(
+                [x["waveform"].transpose(0, 1) for x in batch], 
+                batch_first=True, 
+                padding_value=0.
+            ).permute(0, 2, 1),
+            "audio_path": [x["audio_path"] for x in batch]
+        }
+    
+    def prepare_data(self):
+        pass
+
+    def setup(self, stage=None):
+        if stage == "fit" or stage is None:
+            self.train = LibriTTSTrain(self.dataset_path)
+            self.dev = LibriTTSDev(self.dataset_path)
+        if stage == "test" or stage is None:
+            self.test_other = LibriTTSTestOther(self.dataset_path)
+            self.test_clean = LibriTTSTestClean(self.dataset_path)
+
+    def train_dataloader(self):
+        return DataLoader(self.train, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=True,collate_fn=self.pad_collate_fn)
+
+    def val_dataloader(self):
+        return DataLoader(self.dev, batch_size=self.batch_size, num_workers=self.num_workers, collate_fn=self.pad_collate_fn)
+
+    def test_dataloader(self):
+        return DataLoader(self.test_other, batch_size=self.batch_size, num_workers=self.num_workers, collate_fn=self.pad_collate_fn)
 
 
 class LibriTTSBase(Dataset):
-    def __init__(self, data_root, transform=None):
+    def __init__(self, data_root,clip_seconds=-1, transform=None):
         self.data_root = data_root
         self.sample_rate = 24000
         self.channels = 1
-        self.clip_seconds = -1
+        self.clip_seconds = clip_seconds
         self.transform = transform
         self._load()
 
@@ -55,8 +99,7 @@ class LibriTTSBase(Dataset):
                 "waveform": waveform,
                 "audio_path": data_path
             }
-               
-            
+                
 class LibriTTSTrain(LibriTTSBase):
     NAME = "train"
     
