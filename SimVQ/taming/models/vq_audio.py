@@ -79,8 +79,8 @@ class VQModel(L.LightningModule):
         )
         self.head = FourierHead(
             dim=768,
-            n_fft=2400,
-            hop_length=750,
+            n_fft=1280,
+            hop_length=700,
             padding="same"
         )
         # self.head = FourierHead(
@@ -91,12 +91,6 @@ class VQModel(L.LightningModule):
         # )
         # self.VideoMLP=VideoMLP(10,75)
         # self.VideoConv=VideoConv(75)
-        # self.head = FourierHead(
-        #     dim=768,
-        #     n_fft=4800,
-        #     hop_length=2400,
-        #     padding="same"
-        # )
         self.loss = instantiate_from_config(lossconfig)
         
         self.audio_normalize = audio_normalize
