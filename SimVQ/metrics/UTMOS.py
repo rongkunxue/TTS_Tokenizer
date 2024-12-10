@@ -14,7 +14,7 @@ WAV2VEC_URL = "https://hf-mirror.com/spaces/sarulab-speech/UTMOS-demo/resolve/ma
 UTMOS score, automatic Mean Opinion Score (MOS) prediction system, 
 adapted from https://hf-mirror.com/spaces/sarulab-speech/UTMOS-demo
 """
-data_path_str="/mnt/afs/chenyun/code/CosyVoice/examples/libritts/LibriTTS/"
+data_path_str="/mnt/nfs3/zhangjinouwen/dataset/LibriTTS"
 
 
 class UTMOSScore:

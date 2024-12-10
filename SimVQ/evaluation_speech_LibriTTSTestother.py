@@ -20,7 +20,7 @@ from torch import utils
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-data_path_str="/mnt/afs/chenyun/code/CosyVoice/examples/libritts/LibriTTS/"
+data_path_str="/mnt/nfs3/zhangjinouwen/dataset/LibriTTS"
 
 def load_config(config_path, display=False):
     config = OmegaConf.load(config_path)
