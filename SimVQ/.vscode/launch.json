@@ -9,11 +9,12 @@
         "args": [
           "fit",
           "--config",
-          "configs/libritts_262khz_25.yaml"
+          "configs/libritts_262khz.yaml"
         ],
         "env": {
           "XDG_CACHE_HOME": "/mnt/nfs3/zhangjinouwen/dataset/imagenet_2012",
           "DATA_ROOT":"/mnt/nfs3/zhangjinouwen/dataset/LibriTTS",
+          "CUDA_VISIBLE_DEVICES": "1"
         },
         "console": "integratedTerminal",
         "justMyCode": false

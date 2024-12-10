@@ -95,20 +95,6 @@ class VQModel(L.LightningModule):
             hop_length=320,
             padding="same"
         )
-        # self.head = FourierHead(
-        #     dim=768,
-        #     n_fft=1280,
-        #     hop_length=960,
-        #     padding="same"
-        # )
-        # self.VideoMLP=VideoMLP(10,75)
-        # self.VideoConv=VideoConv(75)
-        # self.head = FourierHead(
-        #     dim=768,
-        #     n_fft=4800,
-        #     hop_length=2400,
-        #     padding="same"
-        # )
         self.loss = instantiate_from_config(lossconfig)
         
         self.audio_normalize = audio_normalize
@@ -123,17 +109,19 @@ class VQModel(L.LightningModule):
             self.register_buffer("colorize", torch.randn(3, colorize_nlabels, 1, 1))
         if monitor is not None:
             self.monitor = monitor
-
-        if self.use_ema and stage is None: #no need to construct ema when training transformer
-            self.model_ema = LitEma(self)
         self.learning_rate = learning_rate
         self.scheduler_type = scheduler_type
         self.warmup_epochs = warmup_epochs
         self.min_learning_rate = min_learning_rate
         self.automatic_optimization = False
+        import torchaudio
+        self.embeding_model_init()
+        self.resampler = torchaudio.transforms.Resample(orig_freq=24000, new_freq=16000)
+        if self.use_ema and stage is None:  # no need to construct EMA when training transformer
+            self.model_ema = LitEma(self)
 
+    def embeding_model_init(self):
         self.strict_loading = False
-
         CAMPPLUS_VOX = {
             'obj': 'speakerlab.models.campplus.DTDNN.CAMPPlus',
             'args': {
@@ -197,8 +185,6 @@ class VQModel(L.LightningModule):
         self.embedding_model = dynamic_import(model['obj'])(**model['args'])
         self.embedding_model.load_state_dict(pretrained_state)
         self.embedding_model.eval()
-        import torchaudio
-        self.resampler = torchaudio.transforms.Resample(orig_freq=24000, new_freq=16000)
 
     @contextmanager
     def ema_scope(self, context=None):
@@ -219,7 +205,20 @@ class VQModel(L.LightningModule):
         '''
         save the state_dict and filter out the 
         '''
-        return {k: v for k, v in super().state_dict(*args, destination, prefix, keep_vars).items() if ("inception_model" not in k and "lpips_vgg" not in k and "lpips_alex" not in k)}
+        def state_dict(self, *args, destination=None, prefix='', keep_vars=False):
+            """
+            Save the state_dict and filter out specific parameters
+            """
+            return {
+                k: v
+                for k, v in super().state_dict(*args, destination=destination, prefix=prefix, keep_vars=keep_vars).items()
+                if (
+                    "inception_model" not in k and
+                    "lpips_vgg" not in k and
+                    "lpips_alex" not in k and
+                    "embedding_model" not in k  # Exclude embedding_model parameters
+                )
+            }
         
     def init_from_ckpt(self, path, ignore_keys=list(), stage=None):
         sd = torch.load(path, map_location="cpu")["state_dict"]
