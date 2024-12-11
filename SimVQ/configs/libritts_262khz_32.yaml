@@ -62,30 +62,11 @@ model:
     use_ema: true
 
 data:
-  class_path: main.PadDataModuleFromConfig
+  class_path: taming.data.easylibritts.LibriTTSDataModule
   init_args:
     batch_size: 20
     num_workers: 8
-    train:
-      target: taming.data.libritts.LibriTTSTrain
-      params:
-        config:
-          sample_rate: 24000
-          channels: 1
-          clip_seconds: 1
-    validation:
-      target: taming.data.libritts.LibriTTSDev
-      params:
-        config:
-          sample_rate: 24000
-          channels: 1
-          clip_seconds: 1
-    test:
-      target: taming.data.libritts.LibriTTSTest
-      params:
-        config:
-          sample_rate: 24000
-          channels: 1
-          clip_seconds: -1
+    dataset_path: "/mnt/nfs3/zhangjinouwen/dataset/LibriTTS"
+    
 
 ckpt_path: null

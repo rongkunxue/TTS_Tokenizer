@@ -38,11 +38,11 @@ class LibriTTSDataModule(L.LightningDataModule):
 
     def setup(self, stage=None):
         if stage == "fit" or stage is None:
-            self.train = LibriTTSTrain(self.dataset_path)
-            self.dev = LibriTTSDev(self.dataset_path)
+            self.train = LibriTTSTrain(self.dataset_path,1)
+            self.dev = LibriTTSDev(self.dataset_path,1)
         if stage == "test" or stage is None:
-            self.test_other = LibriTTSTestOther(self.dataset_path)
-            self.test_clean = LibriTTSTestClean(self.dataset_path)
+            self.test_other = LibriTTSTestOther(self.dataset_path,-1)
+            self.test_clean = LibriTTSTestClean(self.dataset_path,-1)
 
     def train_dataloader(self):
         return DataLoader(self.train, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=True,collate_fn=self.pad_collate_fn)

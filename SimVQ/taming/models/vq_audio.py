@@ -79,16 +79,11 @@ class VQModel(L.LightningModule):
         )
         self.head = FourierHead(
             dim=768,
-            n_fft=1280,
-            hop_length=700,
+            n_fft=2048,
+            hop_length=960,
             padding="same"
         )
-        # self.head = FourierHead(
-        #     dim=768,
-        #     n_fft=1280,
-        #     hop_length=480,
-        #     padding="same"
-        # )
+
         # self.VideoMLP=VideoMLP(10,75)
         # self.VideoConv=VideoConv(75)
         self.loss = instantiate_from_config(lossconfig)

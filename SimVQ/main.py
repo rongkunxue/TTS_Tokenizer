@@ -28,10 +28,6 @@ def instantiate_from_config(config):
 
 
 def main():
-    from taming.data.easylibritts import LibriTTSDataModule
-    a=LibriTTSDataModule()
-    
-
     cli = LightningCLI(
         save_config_kwargs={"overwrite": True},
     )
