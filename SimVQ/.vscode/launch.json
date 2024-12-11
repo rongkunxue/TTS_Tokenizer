@@ -9,7 +9,7 @@
         "args": [
           "fit",
           "--config",
-          "configs/libritts_262khz_25.yaml"
+          "configs/libritts_262khz_20.yaml"
         ],
         "env": {
           "XDG_CACHE_HOME": "/mnt/nfs3/zhangjinouwen/dataset/imagenet_2012",

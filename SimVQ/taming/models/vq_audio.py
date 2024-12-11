@@ -80,7 +80,7 @@ class VQModel(L.LightningModule):
         self.head = FourierHead(
             dim=768,
             n_fft=2048,
-            hop_length=960,
+            hop_length=800,
             padding="same"
         )
 

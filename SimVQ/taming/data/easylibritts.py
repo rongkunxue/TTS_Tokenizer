@@ -57,7 +57,7 @@ class LibriTTSDataModule(L.LightningDataModule):
 class LibriTTSBase(Dataset):
     def __init__(self, data_root,clip_seconds=-1, transform=None):
         self.data_root = data_root
-        self.sample_rate = 24000
+        self.sample_rate = 16000
         self.channels = 1
         self.clip_seconds = clip_seconds
         self.transform = transform
@@ -84,7 +84,8 @@ class LibriTTSBase(Dataset):
             
         if self.transform:
             waveform = self.transform(waveform)
-            
+        
+
         if self.clip_seconds < 0:
             pass
         elif waveform.shape[1] > self.clip_seconds * sample_rate:
