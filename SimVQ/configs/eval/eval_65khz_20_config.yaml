@@ -1,0 +1,131 @@
+# lightning.pytorch==2.2.5
+seed_everything: 0
+trainer:
+  accelerator: gpu
+  strategy: ddp_find_unused_parameters_true
+  devices: 2
+  num_nodes: 1
+  precision: 32
+  logger:
+    class_path: lightning.pytorch.loggers.TensorBoardLogger
+    init_args:
+      save_dir: vq_audio_log/65k_ration_20
+      name: tmp
+      version: 1second
+      log_graph: false
+      default_hp_metric: true
+      prefix: ''
+      sub_dir: null
+      comment: ''
+      purge_step: null
+      max_queue: 10
+      flush_secs: 120
+      filename_suffix: ''
+  callbacks:
+  - class_path: lightning.pytorch.callbacks.ModelCheckpoint
+    init_args:
+      dirpath: vq_audio_log/65k_ration_20
+      filename: null
+      monitor: null
+      verbose: false
+      save_last: null
+      save_top_k: -1
+      save_weights_only: false
+      mode: min
+      auto_insert_metric_name: true
+      every_n_train_steps: null
+      train_time_interval: null
+      every_n_epochs: null
+      save_on_train_epoch_end: null
+      enable_version_counter: true
+  - class_path: lightning.pytorch.callbacks.LearningRateMonitor
+    init_args:
+      logging_interval: step
+      log_momentum: false
+      log_weight_decay: false
+  fast_dev_run: false
+  max_epochs: 50
+  min_epochs: null
+  max_steps: -1
+  min_steps: null
+  max_time: null
+  limit_train_batches: null
+  limit_val_batches: null
+  limit_test_batches: null
+  limit_predict_batches: null
+  overfit_batches: 0.0
+  val_check_interval: null
+  check_val_every_n_epoch: 1
+  num_sanity_val_steps: 0
+  log_every_n_steps: 100
+  enable_checkpointing: null
+  enable_progress_bar: null
+  enable_model_summary: null
+  accumulate_grad_batches: 1
+  gradient_clip_val: null
+  gradient_clip_algorithm: null
+  deterministic: null
+  benchmark: null
+  inference_mode: true
+  use_distributed_sampler: true
+  profiler: null
+  detect_anomaly: false
+  barebones: false
+  plugins: null
+  sync_batchnorm: false
+  reload_dataloaders_every_n_epochs: 0
+  default_root_dir: null
+model:
+  class_path: taming.models.vq_audio.VQModel
+  init_args:
+    ddconfig:
+      causal: true
+      dimension: 512
+      ratios:
+      - 8
+      - 5
+      - 5
+      - 4
+    lossconfig:
+      target: taming.modules.losses.stft.VQSTFTWithDiscriminator
+      params:
+        disc_conditional: false
+        disc_in_channels: 1
+        disc_start: 0
+        codebook_enlarge_ratio: 0
+        codebook_enlarge_steps: 2000
+        sample_rate: 16000
+        commit_weight: 1000.0
+        gen_loss_weight: 1.0
+        mel_loss_coeff: 45.0
+        mrd_loss_coeff: 1.0
+    quantconfig:
+      target: taming.modules.vqvae.quantize.SimVQ1D
+      params:
+        n_e: 65536
+        e_dim: 512
+        beta: 0.25
+        legacy: false
+    sample_rate: 16000
+    target_bandwidths: null
+    audio_normalize: false
+    segment: None
+    ckpt_path: null
+    ignore_keys: []
+    colorize_nlabels: null
+    monitor: null
+    learning_rate: 0.0001
+    warmup_epochs: 1.0
+    scheduler_type: None
+    min_learning_rate: 0
+    use_ema: true
+    stage: null
+data:
+  class_path: taming.data.easylibritts.LibriTTSDataModule
+  init_args:
+    batch_size: 20
+    num_workers: 8
+    dataset_path: /mnt/nfs3/zhangjinouwen/dataset/LibriTTS
+optimizer: null
+lr_scheduler: null
+ckpt_path: null
