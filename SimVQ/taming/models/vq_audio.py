@@ -3,7 +3,7 @@ import torch.nn.functional as F
 import lightning as L
 import math
 import sys
-sys.path.insert(0,'/root/Github/3D-Speaker')
+sys.path.insert(0,'/root/Github/TTS_Tokenizer/thirdPartyLibrary/3D-Speaker')
 from speakerlab.utils.builder import dynamic_import
 import os
 import re
@@ -91,8 +91,8 @@ class VQModel(L.LightningModule):
         )
         self.head = FourierHead(
             dim=768,
-            n_fft=1280,
-            hop_length=320,
+            n_fft=2048,
+            hop_length=800,
             padding="same"
         )
         self.loss = instantiate_from_config(lossconfig)
@@ -114,9 +114,7 @@ class VQModel(L.LightningModule):
         self.warmup_epochs = warmup_epochs
         self.min_learning_rate = min_learning_rate
         self.automatic_optimization = False
-        import torchaudio
         self.embeding_model_init()
-        self.resampler = torchaudio.transforms.Resample(orig_freq=24000, new_freq=16000)
         if self.use_ema and stage is None:  # no need to construct EMA when training transformer
             self.model_ema = LitEma(self)
 
@@ -254,18 +252,8 @@ class VQModel(L.LightningModule):
             missing_keys, unexpected_keys = self.load_state_dict(sd, strict=False)
         print(f"Restored from {path}")
 
-    def resample_batch(self,wav, original_sample_rate, target_sample_rate=16000):
-        batch_size, channels, _ = wav.shape
-        resampled_wav = torch.stack([
-            self.resampler(wav[i]) for i in range(batch_size)
-        ])
-        return resampled_wav
     
     def embedding(self, wav):
-        original_sample_rate = 24000
-        target_sample_rate = 16000
-        wav = self.resample_batch(wav, original_sample_rate, target_sample_rate)
-        
         from taming.modules.processor import FBank
         feature_extractor = FBank(80, sample_rate=16000, mean_nor=True)
         feat = feature_extractor(wav)
@@ -383,11 +371,11 @@ class VQModel(L.LightningModule):
         x = self.get_input(batch)
         quant, eloss, indices, loss_break = self.encode(x)
         x_rec = self.decode(quant)
-        
-        aeloss, log_dict_ae = self.loss(eloss, loss_break, x, x_rec, 0, self.global_step,
+        embedingloss = self.embedding_loss(x,x_rec)
+        aeloss, log_dict_ae = self.loss(embedingloss,eloss, loss_break, x, x_rec, 0, self.global_step,
                                         split="val"+ suffix)
 
-        discloss, log_dict_disc = self.loss(eloss, loss_break, x, x_rec, 1, self.global_step,
+        discloss, log_dict_disc = self.loss(embedingloss,eloss, loss_break, x, x_rec, 1, self.global_step,
                                             split="val" + suffix)
         
         for ind in indices.unique():
@@ -412,23 +400,23 @@ class VQModel(L.LightningModule):
                                      list(self.loss.multiresddisc.parameters())+
                                      list(self.loss.dac.parameters()),
                                     lr=lr, betas=(0.5, 0.9))
-        if self.trainer.is_global_zero:
-            print("step_per_epoch: {}".format(len(self.trainer.datamodule._train_dataloader()) // self.trainer.world_size))
-        step_per_epoch  = len(self.trainer.datamodule._train_dataloader()) // self.trainer.world_size
-        warmup_steps = step_per_epoch * self.warmup_epochs
-        training_steps = step_per_epoch * self.trainer.max_epochs
+        # if self.trainer.is_global_zero:
+        #     print("step_per_epoch: {}".format(len(self.trainer.datamodule._train_dataloader()) // self.trainer.world_size))
+        # step_per_epoch  = len(self.trainer.datamodule._train_dataloader()) // self.trainer.world_size
+        # warmup_steps = step_per_epoch * self.warmup_epochs
+        # training_steps = step_per_epoch * self.trainer.max_epochs
 
-        if self.scheduler_type == "None":
-            return ({"optimizer": opt_gen}, {"optimizer": opt_disc})
+        # if self.scheduler_type == "None":
+        return ({"optimizer": opt_gen}, {"optimizer": opt_disc})
     
-        if self.scheduler_type == "linear-warmup":
-            scheduler_ae = torch.optim.lr_scheduler.LambdaLR(opt_gen, Scheduler_LinearWarmup(warmup_steps))
-            scheduler_disc = torch.optim.lr_scheduler.LambdaLR(opt_disc, Scheduler_LinearWarmup(warmup_steps))
+        # if self.scheduler_type == "linear-warmup":
+        #     scheduler_ae = torch.optim.lr_scheduler.LambdaLR(opt_gen, Scheduler_LinearWarmup(warmup_steps))
+        #     scheduler_disc = torch.optim.lr_scheduler.LambdaLR(opt_disc, Scheduler_LinearWarmup(warmup_steps))
 
-        elif self.scheduler_type == "linear-warmup_cosine-decay":
-            multipler_min = self.min_learning_rate / self.learning_rate
-            scheduler_ae = torch.optim.lr_scheduler.LambdaLR(opt_gen, Scheduler_LinearWarmup_CosineDecay(warmup_steps=warmup_steps, max_steps=training_steps, multipler_min=multipler_min))
-            scheduler_disc = torch.optim.lr_scheduler.LambdaLR(opt_disc, Scheduler_LinearWarmup_CosineDecay(warmup_steps=warmup_steps, max_steps=training_steps, multipler_min=multipler_min))
-        else:
-            raise NotImplementedError()
-        return {"optimizer": opt_gen, "lr_scheduler": scheduler_ae}, {"optimizer": opt_disc, "lr_scheduler": scheduler_disc}
+        # elif self.scheduler_type == "linear-warmup_cosine-decay":
+        #     multipler_min = self.min_learning_rate / self.learning_rate
+        #     scheduler_ae = torch.optim.lr_scheduler.LambdaLR(opt_gen, Scheduler_LinearWarmup_CosineDecay(warmup_steps=warmup_steps, max_steps=training_steps, multipler_min=multipler_min))
+        #     scheduler_disc = torch.optim.lr_scheduler.LambdaLR(opt_disc, Scheduler_LinearWarmup_CosineDecay(warmup_steps=warmup_steps, max_steps=training_steps, multipler_min=multipler_min))
+        # else:
+        #     raise NotImplementedError()
+        # return {"optimizer": opt_gen, "lr_scheduler": scheduler_ae}, {"optimizer": opt_disc, "lr_scheduler": scheduler_disc}
