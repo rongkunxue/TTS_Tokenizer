@@ -46,11 +46,13 @@ class SpeechTokenizerDataModule(L.LightningDataModule):
         if stage == "fit" or stage is None:
             self.train = audioDataset(self.train_dataset_path,48000,False)
         if stage == "test" or stage is None:
-            self.test = audioDataset(self.val_dataset_path,16000*30,True)
+            self.test = audioDataset(self.train_dataset_path,48000,False)
 
     def train_dataloader(self):
         return DataLoader(self.train, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=True,collate_fn=self.pad_collate_fn)
 
+    def test_dataloader(self):
+        return DataLoader(self.test, batch_size=self.batch_size, num_workers=self.num_workers,shuffle=False, collate_fn=self.pad_collate_fn)
 
 class audioDataset(Dataset):
     def __init__(self,
@@ -62,7 +64,6 @@ class audioDataset(Dataset):
             self.file_list = f.readlines()
         self.segment_size = segment_size
         self.sample_rate = 16000
-        self.valid = if_val
         self.downsample_rate = 320
         
     def __len__(self):
@@ -77,23 +78,20 @@ class audioDataset(Dataset):
         if sr != self.sample_rate:
             audio = torchaudio.functional.resample(audio, sr, self.sample_rate)
         if audio.size(-1) > self.segment_size:
-            if self.valid:
-                return audio[:self.segment_size], feature[:self.segment_size // self.downsample_rate]
             max_audio_start = audio.size(-1) - self.segment_size
             audio_start = random.randint(0, max_audio_start)
             audio = audio[audio_start:audio_start+self.segment_size]
             feature_start = min(int(audio_start / self.downsample_rate), feature.size(0) - self.segment_size // self.downsample_rate)
             feature = feature[feature_start:feature_start + self.segment_size // self.downsample_rate, :]
         else:
-            if not self.valid:
-                audio = torch.nn.functional.pad(audio, (0, self.segment_size - audio.size(-1)), 'constant')
+            audio = torch.nn.functional.pad(audio, (0, self.segment_size - audio.size(-1)), 'constant')
         return audio, feature
     
 
 if __name__ == "__main__":
     data_module = SpeechTokenizerDataModule(batch_size=6, num_workers=4,train_path="/root/Github/TTS_Tokenizer/thirdPartyLibrary/SpeechTokenizer/train_file_list.txt",val_path="/root/Github/TTS_Tokenizer/thirdPartyLibrary/SpeechTokenizer/dev_file_list.txt")
-    data_module.setup("fit")
-    train_loader = data_module.train_dataloader()
+    data_module.setup("test")
+    train_loader = data_module.test_dataloader()
     for batch in train_loader:
         a=1
         break
