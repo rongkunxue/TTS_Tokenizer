@@ -22,7 +22,7 @@ class VQSTFTWithDiscriminator(nn.Module):
         self.codebook_enlarge_ratio = codebook_enlarge_ratio
         self.codebook_enlarge_steps = codebook_enlarge_steps
         self.gen_loss_weight = gen_loss_weight
-        self.distill_loss_coeff = 10
+        self.distill_loss_coeff = 100
         self.mel_loss_coeff=mel_loss_coeff
         self.mrd_loss_coeff=mrd_loss_coeff
         
