@@ -24,8 +24,8 @@ if __name__ == '__main__':
     with open(args.config) as f:
         cfg = json.load(f)
     sample_rate = cfg.get('sample_rate')
-    feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained(cfg.get('semantic_model_path'))
-    model = HubertModel.from_pretrained(cfg.get('semantic_model_path')).eval().to(device)
+    feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained("facebook/hubert-base-ls960",cache_dir="/checkpoint")
+    model = HubertModel.from_pretrained("facebook/hubert-base-ls960",cache_dir="checkpoint").eval().to(device)
     target_layer = cfg.get('semantic_model_layer')
     path = Path(args.audio_dir)
     file_list = [str(file) for ext in exts for file in path.glob(f'**/*.{ext}')]

@@ -1,0 +1,6 @@
+model_hub
+*.pyc
+*.txt
+speechtokenizer.egg-info
+checkpoint
+rep

@@ -34,7 +34,7 @@ setup(
     python_requires=REQUIRES_PYTHON,
     url=URL,
     packages=['speechtokenizer', 'speechtokenizer.quantization', 'speechtokenizer.modules', 'speechtokenizer.trainer'],
-    install_requires=['numpy', 'torch', 'torchaudio', 'einops','scipy','huggingface-hub','soundfile', 'matplotlib', 'lion_pytorch', 'accelerate'],
+    install_requires=['numpy', 'torch', 'torchaudio', 'einops','scipy','huggingface-hub','soundfile', 'matplotlib', 'lion_pytorch', 'accelerate','transformers','beartype'],
     include_package_data=True,
     license='Apache License 2.0',
     classifiers=[

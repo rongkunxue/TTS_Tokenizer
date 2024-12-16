@@ -1,7 +1,7 @@
 CONFIG="config/spt_base_cfg.json"
-AUDIO_DIR="/remote-home/share/data/SpeechPretrain/LibriSpeech/LibriSpeech"
-REP_DIR="/remote-home/share/data/SpeechPretrain/hubert_rep/LibriSpeech"
-EXTS="flac"
+AUDIO_DIR="/mnt/nfs3/zhangjinouwen/dataset/LibriTTS/train-clean-100"
+REP_DIR="/root/Github/TTS_Tokenizer/thirdPartyLibrary/SpeechTokenizer/rep"
+EXTS="wav"
 SPLIT_SEED=0
 VALID_SET_SIZE=1500
 
