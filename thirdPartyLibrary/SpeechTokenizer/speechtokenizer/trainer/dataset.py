@@ -53,7 +53,7 @@ class audioDataset(Dataset):
         file = self.file_list[index].strip()
         audio_file, feature_file = file.split('\t')
         audio, sr = torchaudio.load(audio_file)
-        feature = torch.from_numpy(np.load(feature_file))
+        feature = torch.from_numpy(np.load(feature_file)).squeeze(0)
         audio = audio.mean(axis=0)
         if sr != self.sample_rate:
             audio = torchaudio.functional.resample(audio, sr, self.sample_rate)
