@@ -22,7 +22,7 @@ class VQSTFTWithDiscriminator(nn.Module):
         self.codebook_enlarge_ratio = codebook_enlarge_ratio
         self.codebook_enlarge_steps = codebook_enlarge_steps
         self.gen_loss_weight = gen_loss_weight
-        
+        self.distill_loss_coeff = 10
         self.mel_loss_coeff=mel_loss_coeff
         self.mrd_loss_coeff=mrd_loss_coeff
         
@@ -40,7 +40,7 @@ class VQSTFTWithDiscriminator(nn.Module):
         self.disc_factor = disc_factor
         self.discriminator_weight = disc_weight
                     
-    def forward(self, codebook_loss, loss_break, inputs, reconstructions, optimizer_idx,
+    def forward(self,loss_distill, codebook_loss, loss_break, inputs, reconstructions, optimizer_idx,
                 global_step, last_layer=None, cond=None, split="train"):
         
         # now the GAN part
@@ -69,6 +69,7 @@ class VQSTFTWithDiscriminator(nn.Module):
                 self.gen_loss_weight * (loss_gen_mp
                 + self.mrd_loss_coeff * loss_gen_mrd
                 + loss_fm_mp
+                + self.distill_loss_coeff * loss_distill
                 + self.mrd_loss_coeff * loss_fm_mrd
                 + loss_dac_1
                 + loss_dac_2)
@@ -85,6 +86,7 @@ class VQSTFTWithDiscriminator(nn.Module):
                     "{}/feature_matching_mrd".format(split): loss_fm_mrd.detach(),
                     "{}/loss_dac_1".format(split): loss_dac_1.detach(),
                     "{}/loss_dac_2".format(split): loss_dac_2.detach(),
+                    "{}/loss_distill".format(split): loss_distill.detach(),
                     }
 
             return loss, log

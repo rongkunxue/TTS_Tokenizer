@@ -14,6 +14,7 @@ from taming.modules.scheduler.lr_scheduler import Scheduler_LinearWarmup, Schedu
 from taming.modules.util import requires_grad
 from collections import OrderedDict
 from taming.modules.ema import LitEma
+from einops import rearrange
 
 import torch.nn as nn
 class VideoMLP(nn.Module):
@@ -83,7 +84,7 @@ class VQModel(L.LightningModule):
             hop_length=320,
             padding="same"
         )
-
+        self.transform = nn.Linear(512,768)
         # self.VideoMLP=VideoMLP(10,75)
         # self.VideoConv=VideoConv(75)
         self.loss = instantiate_from_config(lossconfig)
@@ -108,7 +109,6 @@ class VQModel(L.LightningModule):
         self.warmup_epochs = warmup_epochs
         self.min_learning_rate = min_learning_rate
         self.automatic_optimization = False
-
         self.strict_loading = False
 
     @contextmanager
@@ -197,17 +197,31 @@ class VQModel(L.LightningModule):
         dec = self.decode(quant)
         for ind in indices.unique():
             self.codebook_count[ind] = 1
-        return dec, diff, loss_break
+        feature = rearrange(quant[0], 'b d t -> b t d')
+        feature = self.transform(feature)
+        return dec, diff, loss_break,feature
+    
+    def d_axis_distill_loss(self,feature, target_feature):
+        n = min(feature.size(1), target_feature.size(1))
+        distill_loss = - torch.log(torch.sigmoid(torch.nn.functional.cosine_similarity(feature[:, :n], target_feature[:, :n], axis=1))).mean()
+        return distill_loss
 
-    def get_input(self, batch):
-        x = batch["waveform"].to(memory_format=torch.contiguous_format)
-        return x.float()
+    def t_axis_distill_loss(feature, target_feature, lambda_sim=1):
+        n = min(feature.size(1), target_feature.size(1))
+        l1_loss = torch.functional.l1_loss(feature[:, :n], target_feature[:, :n], reduction='mean')
+        sim_loss = - torch.log(torch.sigmoid(torch.nn.functional.cosine_similarity(feature[:, :n], target_feature[:, :n], axis=-1))).mean()
+        distill_loss = l1_loss + lambda_sim * sim_loss
+        return distill_loss 
+        # def get_input(self, batch):
+        #     x = batch["waveform"].to(memory_format=torch.contiguous_format)
+        #     return x.float()
 
     # fix mulitple optimizer bug
     # refer to https://lightning.ai/docs/pytorch/stable/model/manual_optimization.html
     def training_step(self, batch, batch_idx):
-        x = self.get_input(batch)
-        xrec, eloss, loss_break = self(x)
+        x,semantic_feature=batch[0],batch[1]
+        x = x.unsqueeze(1)
+        xrec, eloss, loss_break,feature = self(x)
 
         opt_gen, opt_disc = self.optimizers()
         # scheduler_gen, scheduler_disc = self.lr_schedulers()
@@ -221,9 +235,9 @@ class VQModel(L.LightningModule):
         # opt_gen._on_before_step = lambda: self.trainer.profiler.start("optimizer_step")
         # opt_gen._on_after_step = lambda: self.trainer.profiler.stop("optimizer_step")
         ####################
-        
         # optimize generator
-        aeloss, log_dict_ae = self.loss(eloss, loss_break, x, xrec, 0, self.global_step,
+        loss_distill = self.d_axis_distill_loss(feature, semantic_feature)
+        aeloss, log_dict_ae = self.loss(loss_distill,eloss, loss_break, x, xrec, 0, self.global_step,
                                         split="train")
         opt_gen.zero_grad()
         self.manual_backward(aeloss)
@@ -234,7 +248,7 @@ class VQModel(L.LightningModule):
         log_dict_ae["train/codebook_util"] = torch.tensor(sum(self.codebook_count) / len(self.codebook_count))
         
         # optimize discriminator
-        discloss, log_dict_disc = self.loss(eloss, loss_break, x, xrec, 1, self.global_step,
+        discloss, log_dict_disc = self.loss(loss_distill,eloss, loss_break, x, xrec, 1, self.global_step,
                                             split="train")
         opt_disc.zero_grad()
         self.manual_backward(discloss)
@@ -266,14 +280,17 @@ class VQModel(L.LightningModule):
             log_dict = self._validation_step(batch, batch_idx)
 
     def _validation_step(self, batch, batch_idx, suffix=""):
-        x = self.get_input(batch)
+        x,semantic_feature=batch[0],batch[1]
+        x = x.unsqueeze(1)
         quant, eloss, indices, loss_break = self.encode(x)
         x_rec = self.decode(quant)
-        
-        aeloss, log_dict_ae = self.loss(eloss, loss_break, x, x_rec, 0, self.global_step,
+        feature = rearrange(quant[0], 'b d t -> b t d')
+        feature = self.transform(feature)
+        loss_distill = self.d_axis_distill_loss(feature, semantic_feature)
+        aeloss, log_dict_ae = self.loss(loss_distill,eloss, loss_break, x, x_rec, 0, self.global_step,
                                         split="val"+ suffix)
 
-        discloss, log_dict_disc = self.loss(eloss, loss_break, x, x_rec, 1, self.global_step,
+        discloss, log_dict_disc = self.loss(loss_distill,eloss, loss_break, x, x_rec, 1, self.global_step,
                                             split="val" + suffix)
         
         for ind in indices.unique():
@@ -290,6 +307,7 @@ class VQModel(L.LightningModule):
         opt_gen = torch.optim.Adam(list(self.encoder.parameters())+
                                   list(self.decoder.parameters())+
                                 # list(self.VideoConv.parameters())+
+                                  list(self.transform.parameters())+
                                   list(self.quantize.parameters())+
                                   list(self.backbone.parameters())+
                                   list(self.head.parameters()),
