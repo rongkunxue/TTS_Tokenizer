@@ -101,7 +101,7 @@ def main(args):
 
             audio_path = args.ckpt_path.parent / "recons" / batch["audio_path"][0]
             audio_path.parent.mkdir(parents=True, exist_ok=True)
-            torchaudio.save(audio_path.as_posix(), reconstructed_audios[0].cpu().clip(min=-0.99, max=0.99), sample_rate=24000, encoding='PCM_S', bits_per_sample=16)
+            torchaudio.save(audio_path.as_posix(), reconstructed_audios[0].cpu().clip(min=-0.99, max=0.99), sample_rate=16000, encoding='PCM_S', bits_per_sample=16)
             
             
     num_count = sum([1 for key, value in usage.items() if value > 0])
