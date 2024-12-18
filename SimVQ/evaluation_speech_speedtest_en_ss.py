@@ -5,6 +5,7 @@ import glob
 from metrics.UTMOS import UTMOSScore
 from metrics.ss import SimScore
 from metrics.periodicity import calculate_periodicity_metrics
+from metrics.wer import WERScore
 import torchaudio
 from pesq import pesq
 import numpy as np
@@ -115,6 +116,7 @@ def main(args):
     
     UTMOS=UTMOSScore(device=DEVICE)
     Sim=SimScore(device=DEVICE)
+    wer=WERScore(device=DEVICE)
     utmos_sumgt=0
     utmos_sumencodec=0
     pesq_sumpre=0
@@ -124,6 +126,8 @@ def main(args):
 
     sim_pro_wav_all=0
     sim_rec_all=0
+
+    wer_score=0
 
     for i in tqdm(range(len(paths))):
         prowav,prowav_st=torchaudio.load(paths[i].split("|")[2])
@@ -175,6 +179,11 @@ def main(args):
         sim_rec_all+=sim_rec
         sim_pro_wav_all+=sim_pro_wav
 
+        ##5.wer
+        text=paths[i].split("|")[3]
+        wer_s = wer.score_en(prewav_16k,text)
+        wer_score+=wer_s
+        
         ## 4.STOI
         # for ljspeech
         # rawwav_24k=torchaudio.functional.resample(rawwav, orig_freq=rawwav_sr, new_freq=24000)
@@ -206,6 +215,7 @@ def main(args):
         print_and_save(f"similarity_rec: {sim_rec_all/len(paths)}", f)
         print_and_save(f"similarity_pro_wav: {sim_pro_wav_all/len(paths)}", f)
         print_and_save(f"utilization: {utilization}", f)
+        print_and_save(f"WER: {wer_score/len(paths)}", f)
     
     
 def get_args():

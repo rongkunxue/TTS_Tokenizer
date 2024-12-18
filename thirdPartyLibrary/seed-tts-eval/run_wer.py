@@ -59,7 +59,8 @@ def process_one(hypo, truth):
     return (raw_truth, raw_hypo, wer, subs, dele, inse)
 
 
-def run_asr(wav_res_text_path, res_path):
+def run_asr(wav_res_text_path, 
+            ):
     if lang == "en":
         processor, model = load_en_model()
     elif lang == "zh":
