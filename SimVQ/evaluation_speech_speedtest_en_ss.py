@@ -12,12 +12,12 @@ import math
 from pystoi import stoi
 from pathlib import Path
 from tqdm import tqdm
-from taming.data.speech_tts import speechttsTest_en
+from taming.data.officalseedts import speechttsTest_en
 import importlib
 from omegaconf import OmegaConf
 import argparse
 from torch import utils
-data_path_str="/mnt/afs/xrk/seedtts_testset"
+metalst="/root/Github/TTS_Tokenizer/data/ref.txt"
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 def load_config(config_path, display=False):
@@ -66,9 +66,12 @@ def main(args):
                 batch_first=True, 
                 padding_value=0.
             ).permute(0, 2, 1),
-            "audio_path": [x["audio_path"] for x in batch],
+            "prompt_text": [x["prompt_text"] for x in batch],
+            "infer_text": [x["infer_text"] for x in batch],
+            "utt": [x["utt"] for x in batch],
+            "audio_path": [x["audio_path"] for x in batch]
         }
-    speechdataset = speechttsTest_en(data_path_str)
+    speechdataset = speechttsTest_en(metalst)
     test_loader = utils.data.DataLoader(speechdataset, batch_size=1, shuffle=False, num_workers=4, collate_fn=pad_collate_fn)
     
     usage = {}
@@ -76,15 +79,15 @@ def main(args):
         usage[i] = 0
         
     paths = []
-    
     with torch.no_grad():
         for batch in tqdm(test_loader):
             assert batch["waveform"].shape[0] == 1
-            paths.append(batch["audio_path"][0])
-            
-            
+            utt = batch["utt"][0]
+            prompt_text = batch["prompt_text"][0]
+            infer_text = batch["infer_text"][0]
+            prompt_wav_path = batch["audio_path"][0]
+            orgin_wav_path = batch["audio_path"][0].replace("infer","wavs")
             audio = batch["waveform"].to(DEVICE)
-        
             if model.use_ema:
                 with model.ema_scope():
                     quant, diff, indices, _ = model.encode(audio)
@@ -96,11 +99,14 @@ def main(args):
             for index in indices.flatten():
                 usage[index.item()] += 1
                 
-
-            audio_path = args.ckpt_path.parent / "recons" / batch["audio_path"][0]
-            audio_path.parent.mkdir(parents=True, exist_ok=True)
-            torchaudio.save(audio_path.as_posix(), reconstructed_audios[0].cpu().clip(min=-0.99, max=0.99), sample_rate=24000, encoding='PCM_S', bits_per_sample=16)
+            generative_audio_path = os.path.join(f"{args.ckpt_path.parent}/recons/seedtest/{utt}.wav")
+            directory = os.path.dirname(generative_audio_path)
+            os.makedirs(directory, exist_ok=True)
             
+
+            torchaudio.save(generative_audio_path, reconstructed_audios[0].cpu().clip(min=-0.99, max=0.99), sample_rate=24000, encoding='PCM_S', bits_per_sample=16)
+            out_line = '|'.join([utt, prompt_text, prompt_wav_path,infer_text,orgin_wav_path,generative_audio_path])
+            paths.append(out_line)
             
     num_count = sum([1 for key, value in usage.items() if value > 0])
     utilization = num_count / codebook_size
@@ -115,8 +121,8 @@ def main(args):
     f1score_filt=0
 
     for i in tqdm(range(len(paths))):
-        rawwav,rawwav_sr=torchaudio.load(os.path.join(data_path_str, paths[i]))
-        prewav,prewav_sr=torchaudio.load((args.ckpt_path.parent / "recons" / paths[i]).as_posix())
+        rawwav,rawwav_sr=torchaudio.load(paths[i].split("|")[4])
+        prewav,prewav_sr=torchaudio.load(paths[i].split("|")[5])
         
         rawwav=rawwav.to(DEVICE)
         prewav=prewav.to(DEVICE)

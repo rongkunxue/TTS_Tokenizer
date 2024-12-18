@@ -11,9 +11,9 @@ import torchaudio
 
 
 class speechttsBase(Dataset):
-    def __init__(self, date_root, transform=None):
-        self.data_root = date_root
-        self.sample_rate = 24000
+    def __init__(self, metalst, transform=None):
+        self.metalst=metalst
+        self.sample_rate = 16000
         self.channels = 1
         self.clip_seconds = -1
         self.transform = transform
@@ -23,9 +23,9 @@ class speechttsBase(Dataset):
         return len(self.data)
 
     def __getitem__(self, i):
-        data_path = self.data[i]
+        data_path = self.data[i][4]
         waveform, sample_rate = librosa.load(
-            os.path.join(self.data_root, data_path), 
+            data_path, 
             sr=self.sample_rate,
             mono=self.channels == 1
         )
@@ -40,20 +40,13 @@ class speechttsBase(Dataset):
             
         if self.transform:
             waveform = self.transform(waveform)
-            
-        if self.clip_seconds < 0:
-            pass
-        elif waveform.shape[1] > self.clip_seconds * sample_rate:
-            start = random.randint(0, waveform.shape[1] - self.clip_seconds * sample_rate - 1)
-            waveform = waveform[:, start:start + self.clip_seconds * sample_rate] # cut tensor
-        else:
-            pad_length = self.clip_seconds * sample_rate - waveform.size(1)
-            padding_tensor = waveform.repeat(1, 1 + pad_length // waveform.size(1))
-            waveform = torch.cat((waveform, padding_tensor[:, :pad_length]), dim=1)
-        
+   
         return {
                 "waveform": waveform,
-                "audio_path": data_path
+                "prompt_text": self.data[i][1],
+                "infer_text": self.data[i][3],
+                "utt": self.data[i][0],
+                "audio_path": self.data[i][4]
             }
                
             
@@ -68,6 +61,12 @@ class speechttsTest_en(speechttsBase):
     NAME = "en"
     def _load(self):
         f = open(self.metalst)
-        self.lines = f.readlines()
-        f.close()
+        lines = f.readlines()
+        self.data = [line.strip().split('|') for line in lines]
         
+if __name__ == "__main__":
+    data_module = speechttsTest_en(metalst="/root/Github/TTS_Tokenizer/data/ref.txt")
+    train_loader = torch.utils.data.DataLoader(data_module, batch_size=10, num_workers=4, shuffle=True)
+    for batch in train_loader:
+        a=1
+        break
