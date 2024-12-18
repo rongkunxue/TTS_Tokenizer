@@ -5,18 +5,16 @@
         "name": "Python: Debug main.py",
         "type": "python",
         "request": "launch",
-        "program": "${workspaceFolder}/main.py",
+        "program": "${workspaceFolder}/evaluation_speech_speedtest_en_ss.py",
         "args": [
-          "fit",
-          "--config",
-          "configs/libritts_8khz_50_new.yaml"
+          "--config_file","/root/Github/TTS_Tokenizer/SimVQ/vq_audio_log/8k_ration_50_loss/tmp/1second/config.yaml",
+          "--ckpt_path","/root/Github/TTS_Tokenizer/SimVQ/vq_audio_log/8k_ration_50_loss/epoch=49-step=66150.ckpt",
         ],
         "env": {
           "XDG_CACHE_HOME": "/mnt/nfs3/zhangjinouwen/dataset/imagenet_2012",
           "DATA_ROOT":"/mnt/nfs3/zhangjinouwen/dataset/LibriTTS",
         },
         "console": "integratedTerminal",
-        "justMyCode": false
       }
     ]
   }

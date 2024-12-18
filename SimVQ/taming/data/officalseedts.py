@@ -46,7 +46,8 @@ class speechttsBase(Dataset):
                 "prompt_text": self.data[i][1],
                 "infer_text": self.data[i][3],
                 "utt": self.data[i][0],
-                "audio_path": self.data[i][4]
+                "audio_path": self.data[i][4],
+                "prompt_wav_path": self.data[i][2],
             }
                
             

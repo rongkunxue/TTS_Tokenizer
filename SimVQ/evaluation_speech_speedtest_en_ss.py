@@ -3,6 +3,7 @@ import sys
 sys.path.append(os.getcwd())
 import glob
 from metrics.UTMOS import UTMOSScore
+from metrics.ss import SimScore
 from metrics.periodicity import calculate_periodicity_metrics
 import torchaudio
 from pesq import pesq
@@ -69,7 +70,8 @@ def main(args):
             "prompt_text": [x["prompt_text"] for x in batch],
             "infer_text": [x["infer_text"] for x in batch],
             "utt": [x["utt"] for x in batch],
-            "audio_path": [x["audio_path"] for x in batch]
+            "audio_path": [x["audio_path"] for x in batch],
+            "prompt_wav_path": [x["prompt_wav_path"] for x in batch]    
         }
     speechdataset = speechttsTest_en(metalst)
     test_loader = utils.data.DataLoader(speechdataset, batch_size=1, shuffle=False, num_workers=4, collate_fn=pad_collate_fn)
@@ -85,7 +87,7 @@ def main(args):
             utt = batch["utt"][0]
             prompt_text = batch["prompt_text"][0]
             infer_text = batch["infer_text"][0]
-            prompt_wav_path = batch["audio_path"][0]
+            prompt_wav_path = batch["prompt_wav_path"][0]
             orgin_wav_path = batch["audio_path"][0].replace("infer","wavs")
             audio = batch["waveform"].to(DEVICE)
             if model.use_ema:
@@ -104,7 +106,7 @@ def main(args):
             os.makedirs(directory, exist_ok=True)
             
 
-            torchaudio.save(generative_audio_path, reconstructed_audios[0].cpu().clip(min=-0.99, max=0.99), sample_rate=24000, encoding='PCM_S', bits_per_sample=16)
+            torchaudio.save(generative_audio_path, reconstructed_audios[0].cpu().clip(min=-0.99, max=0.99), sample_rate=16000, encoding='PCM_S', bits_per_sample=16)
             out_line = '|'.join([utt, prompt_text, prompt_wav_path,infer_text,orgin_wav_path,generative_audio_path])
             paths.append(out_line)
             
@@ -112,7 +114,7 @@ def main(args):
     utilization = num_count / codebook_size
     
     UTMOS=UTMOSScore(device=DEVICE)
-
+    Sim=SimScore(device=DEVICE)
     utmos_sumgt=0
     utmos_sumencodec=0
     pesq_sumpre=0
@@ -120,13 +122,19 @@ def main(args):
     stoi_sumpre=[]
     f1score_filt=0
 
+    sim_pro_wav_all=0
+    sim_rec_all=0
+
     for i in tqdm(range(len(paths))):
+        prowav,prowav_st=torchaudio.load(paths[i].split("|")[2])
         rawwav,rawwav_sr=torchaudio.load(paths[i].split("|")[4])
         prewav,prewav_sr=torchaudio.load(paths[i].split("|")[5])
         
+        prowav=prowav.to(DEVICE)
         rawwav=rawwav.to(DEVICE)
         prewav=prewav.to(DEVICE)
    
+        prowav_16k=torchaudio.functional.resample(prowav, orig_freq=prowav_st, new_freq=16000)
         rawwav_16k=torchaudio.functional.resample(rawwav, orig_freq=rawwav_sr, new_freq=16000)  #测试UTMOS的时候必须重采样
         prewav_16k=torchaudio.functional.resample(prewav, orig_freq=prewav_sr, new_freq=16000)
 
@@ -161,6 +169,12 @@ def main(args):
         # breakpoint()
 
 
+        ##4.similarity
+        sim_rec =Sim.score(rawwav_16k,prewav_16k)
+        sim_pro_wav =Sim.score(prowav_16k,prewav_16k)
+        sim_rec_all+=sim_rec
+        sim_pro_wav_all+=sim_pro_wav
+
         ## 4.STOI
         # for ljspeech
         # rawwav_24k=torchaudio.functional.resample(rawwav, orig_freq=rawwav_sr, new_freq=24000)
@@ -189,6 +203,8 @@ def main(args):
         print_and_save(f"PESQ: {pesq_sumpre}, {pesq_sumpre/len(paths)}", f)
         print_and_save(f"F1_score: {f1score_sumpre}, {f1score_sumpre/(len(paths)-f1score_filt)}, {f1score_filt}", f)
         print_and_save(f"STOI: {np.mean(stoi_sumpre)}", f)
+        print_and_save(f"similarity_rec: {sim_rec_all/len(paths)}", f)
+        print_and_save(f"similarity_pro_wav: {sim_pro_wav_all/len(paths)}", f)
         print_and_save(f"utilization: {utilization}", f)
     
     
