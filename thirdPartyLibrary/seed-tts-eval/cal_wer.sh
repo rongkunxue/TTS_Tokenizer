@@ -10,7 +10,6 @@ score_file=$output_dir/wav_res_ref_text.wer
 workdir=$(cd $(dirname $0); cd ../; pwd)
 
 python3 get_wav_res_ref_text.py $meta_lst $output_dir $wav_wav_text
-python3 prepare_ckpt.py
 
 timestamp=$(date +%s)
 thread_dir=/tmp/thread_metas_$timestamp/

@@ -4,3 +4,6 @@ modelscope
 librosa
 torch
 torchaudio
+pydub
+onnx
+onnxconverter-common

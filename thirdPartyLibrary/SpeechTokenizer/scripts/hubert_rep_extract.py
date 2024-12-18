@@ -13,7 +13,6 @@ if __name__ == '__main__':
     
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', '-c', type=str, help='Config file path')
-    parser.add_argument('--audio_dir', type=str, help='Audio folder path')
     parser.add_argument('--rep_dir', type=str, help='Path to save representation files')
     parser.add_argument('--exts', type=str, help="Audio file extensions, splitting with ','", default='flac')
     parser.add_argument('--split_seed', type=int, help="Random seed", default=0)
@@ -27,8 +26,13 @@ if __name__ == '__main__':
     feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained("facebook/hubert-base-ls960",cache_dir="/checkpoint")
     model = HubertModel.from_pretrained("facebook/hubert-base-ls960",cache_dir="checkpoint").eval().to(device)
     target_layer = cfg.get('semantic_model_layer')
-    path = Path(args.audio_dir)
-    file_list = [str(file) for ext in exts for file in path.glob(f'**/*.{ext}')]
+    path1 = Path("/mnt/nfs3/zhangjinouwen/dataset/LibriTTS/train-clean-100")
+    path2 = Path("/mnt/nfs3/zhangjinouwen/dataset/LibriTTS/train-clean-360")
+    file_list = [
+        str(file) for ext in exts 
+        for path in [path1, path2] 
+        for file in path.glob(f'**/*.{ext}')
+    ]
     if args.valid_set_size != 0 and args.valid_set_size < 1:
         valid_set_size = int(len(file_list) * args.valid_set_size)
     else:
@@ -52,7 +56,10 @@ if __name__ == '__main__':
                 rep = torch.mean(torch.stack(ouput.hidden_states), axis=0)
             else:
                 rep = ouput.hidden_states[target_layer]
-            rep_file = audio_file.replace(args.audio_dir, args.rep_dir).split('.')[0] + '.hubert.npy'
+            if str(path1) in audio_file:
+                rep_file = audio_file.replace(str(path1), f"{args.rep_dir}/clean100").split('.')[0] +'.hubert.npy'
+            else :
+                rep_file = audio_file.replace(str(path2), f"{args.rep_dir}/clean360").split('.')[0] + '.hubert.npy'
             rep_sub_dir = '/'.join(rep_file.split('/')[:-1])
             if not os.path.exists(rep_sub_dir):
                 os.makedirs(rep_sub_dir)
