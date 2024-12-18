@@ -81,36 +81,42 @@ def main(args):
     for i in range(codebook_size):
         usage[i] = 0
         
-    paths = []
-    with torch.no_grad():
-        for batch in tqdm(test_loader):
-            assert batch["waveform"].shape[0] == 1
-            utt = batch["utt"][0]
-            prompt_text = batch["prompt_text"][0]
-            infer_text = batch["infer_text"][0]
-            prompt_wav_path = batch["prompt_wav_path"][0]
-            orgin_wav_path = batch["audio_path"][0].replace("infer","wavs")
-            audio = batch["waveform"].to(DEVICE)
-            if model.use_ema:
-                with model.ema_scope():
+    if not os.path.exists(f"{args.ckpt_path.parent}/recons/seedtest/paths.txt"):
+        paths=[]
+        with torch.no_grad():
+            for batch in tqdm(test_loader):
+                assert batch["waveform"].shape[0] == 1
+                utt = batch["utt"][0]
+                prompt_text = batch["prompt_text"][0]
+                infer_text = batch["infer_text"][0]
+                prompt_wav_path = batch["prompt_wav_path"][0]
+                orgin_wav_path = batch["audio_path"][0].replace("infer","wavs")
+                audio = batch["waveform"].to(DEVICE)
+                if model.use_ema:
+                    with model.ema_scope():
+                        quant, diff, indices, _ = model.encode(audio)
+                        reconstructed_audios = model.decode(quant)
+                else:
                     quant, diff, indices, _ = model.encode(audio)
                     reconstructed_audios = model.decode(quant)
-            else:
-               quant, diff, indices, _ = model.encode(audio)
-               reconstructed_audios = model.decode(quant)
-               
-            for index in indices.flatten():
-                usage[index.item()] += 1
-                
-            generative_audio_path = os.path.join(f"{args.ckpt_path.parent}/recons/seedtest/{utt}.wav")
-            directory = os.path.dirname(generative_audio_path)
-            os.makedirs(directory, exist_ok=True)
-            
-
-            torchaudio.save(generative_audio_path, reconstructed_audios[0].cpu().clip(min=-0.99, max=0.99), sample_rate=16000, encoding='PCM_S', bits_per_sample=16)
-            out_line = '|'.join([utt, prompt_text, prompt_wav_path,infer_text,orgin_wav_path,generative_audio_path])
-            paths.append(out_line)
-            
+                for index in indices.flatten():
+                    usage[index.item()] += 1
+                    
+                generative_audio_path = os.path.join(f"{args.ckpt_path.parent}/recons/seedtest/{utt}.wav")
+                directory = os.path.dirname(generative_audio_path)
+                os.makedirs(directory, exist_ok=True)
+                torchaudio.save(generative_audio_path, reconstructed_audios[0].cpu().clip(min=-0.99, max=0.99), sample_rate=16000, encoding='PCM_S', bits_per_sample=16)
+                out_line = '|'.join([utt, prompt_text, prompt_wav_path,infer_text,orgin_wav_path,generative_audio_path])
+                paths.append(out_line)
+            with open(f"{args.ckpt_path.parent}/recons/seedtest/paths.txt", "w") as f:
+                for path in paths:
+                    f.write(path + "\n")
+    else:
+        paths = []
+        with open(f"{args.ckpt_path.parent}/recons/seedtest/paths.txt", "r") as f:
+            for line in f:
+                paths.append(line)
+                        
     num_count = sum([1 for key, value in usage.items() if value > 0])
     utilization = num_count / codebook_size
     
