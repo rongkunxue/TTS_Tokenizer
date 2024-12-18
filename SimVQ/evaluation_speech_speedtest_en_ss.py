@@ -180,11 +180,14 @@ def main(args):
         sim_pro_wav =Sim.score(prowav_16k,prewav_16k)
         sim_rec_all+=sim_rec
         sim_pro_wav_all+=sim_pro_wav
+        print("****similarity_rec",sim_rec)
+        print("****similarity_pro_wav",sim_pro_wav)
 
         ##5.wer
         text=paths[i].split("|")[3]
         wer_s = wer.score_en(prewav_16k,text)
         wer_score+=wer_s
+        print("****wer",wer_s)
         
         ## 4.STOI
         # for ljspeech
