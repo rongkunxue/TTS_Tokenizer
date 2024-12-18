@@ -54,6 +54,13 @@ from omegaconf import DictConfig
 
 
 def main(args):
+    config_data = OmegaConf.load(args.config_file)
+    config_model = load_config(args.config_file, display=False)
+    model = load_vqgan_new(config_model, ckpt_path=args.ckpt_path).to(DEVICE)
+    codebook_size = model.quantize.n_e
+    usage = {}
+    for i in range(codebook_size):
+        usage[i] = 0
     if not os.path.exists(f"{args.ckpt_path.parent}/recons/seedtest_paths.txt"):
         def pad_collate_fn(batch):
             """Collate function for padding sequences."""
@@ -71,14 +78,7 @@ def main(args):
             }
         speechdataset = speechttsTest_en(metalst)
         test_loader = utils.data.DataLoader(speechdataset, batch_size=1, shuffle=False, num_workers=4, collate_fn=pad_collate_fn)
-        config_data = OmegaConf.load(args.config_file)
-        config_model = load_config(args.config_file, display=False)
-        model = load_vqgan_new(config_model, ckpt_path=args.ckpt_path).to(DEVICE)
-        codebook_size = model.quantize.n_e
         paths=[]
-        usage = {}
-        for i in range(codebook_size):
-            usage[i] = 0
         with torch.no_grad():
             for batch in tqdm(test_loader):
                 assert batch["waveform"].shape[0] == 1
@@ -109,9 +109,9 @@ def main(args):
                     f.write(path + "\n")
     else:
         paths = []
-        with open(f"{args.ckpt_path.parent}/recons/seedtest_paths.txt", "r") as f:
-            for line in f:
-                paths.append(line)
+        f = open(f"{args.ckpt_path.parent}/recons/seedtest_paths.txt")
+        lines = f.readlines()
+        paths = [line.strip() for line in lines]
                         
     num_count = sum([1 for key, value in usage.items() if value > 0])
     utilization = num_count / codebook_size
