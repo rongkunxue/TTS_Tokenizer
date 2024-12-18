@@ -54,35 +54,31 @@ from omegaconf import DictConfig
 
 
 def main(args):
-    config_data = OmegaConf.load(args.config_file)
-
-    config_model = load_config(args.config_file, display=False)
-    model = load_vqgan_new(config_model, ckpt_path=args.ckpt_path).to(DEVICE)
-    codebook_size = model.quantize.n_e
-
-    def pad_collate_fn(batch):
-        """Collate function for padding sequences."""
-        return {
-            "waveform": torch.nn.utils.rnn.pad_sequence(
-                [x["waveform"].transpose(0, 1) for x in batch], 
-                batch_first=True, 
-                padding_value=0.
-            ).permute(0, 2, 1),
-            "prompt_text": [x["prompt_text"] for x in batch],
-            "infer_text": [x["infer_text"] for x in batch],
-            "utt": [x["utt"] for x in batch],
-            "audio_path": [x["audio_path"] for x in batch],
-            "prompt_wav_path": [x["prompt_wav_path"] for x in batch]    
-        }
-    speechdataset = speechttsTest_en(metalst)
-    test_loader = utils.data.DataLoader(speechdataset, batch_size=1, shuffle=False, num_workers=4, collate_fn=pad_collate_fn)
-    
-    usage = {}
-    for i in range(codebook_size):
-        usage[i] = 0
-        
-    if not os.path.exists(f"{args.ckpt_path.parent}/recons/seedtest/paths.txt"):
+    if not os.path.exists(f"{args.ckpt_path.parent}/recons/seedtest_paths.txt"):
+        def pad_collate_fn(batch):
+            """Collate function for padding sequences."""
+            return {
+                "waveform": torch.nn.utils.rnn.pad_sequence(
+                    [x["waveform"].transpose(0, 1) for x in batch], 
+                    batch_first=True, 
+                    padding_value=0.
+                ).permute(0, 2, 1),
+                "prompt_text": [x["prompt_text"] for x in batch],
+                "infer_text": [x["infer_text"] for x in batch],
+                "utt": [x["utt"] for x in batch],
+                "audio_path": [x["audio_path"] for x in batch],
+                "prompt_wav_path": [x["prompt_wav_path"] for x in batch]    
+            }
+        speechdataset = speechttsTest_en(metalst)
+        test_loader = utils.data.DataLoader(speechdataset, batch_size=1, shuffle=False, num_workers=4, collate_fn=pad_collate_fn)
+        config_data = OmegaConf.load(args.config_file)
+        config_model = load_config(args.config_file, display=False)
+        model = load_vqgan_new(config_model, ckpt_path=args.ckpt_path).to(DEVICE)
+        codebook_size = model.quantize.n_e
         paths=[]
+        usage = {}
+        for i in range(codebook_size):
+            usage[i] = 0
         with torch.no_grad():
             for batch in tqdm(test_loader):
                 assert batch["waveform"].shape[0] == 1
@@ -108,12 +104,12 @@ def main(args):
                 torchaudio.save(generative_audio_path, reconstructed_audios[0].cpu().clip(min=-0.99, max=0.99), sample_rate=16000, encoding='PCM_S', bits_per_sample=16)
                 out_line = '|'.join([utt, prompt_text, prompt_wav_path,infer_text,orgin_wav_path,generative_audio_path])
                 paths.append(out_line)
-            with open(f"{args.ckpt_path.parent}/recons/seedtest/paths.txt", "w") as f:
+            with open(f"{args.ckpt_path.parent}/recons/seedtest_paths.txt", "w") as f:
                 for path in paths:
                     f.write(path + "\n")
     else:
         paths = []
-        with open(f"{args.ckpt_path.parent}/recons/seedtest/paths.txt", "r") as f:
+        with open(f"{args.ckpt_path.parent}/recons/seedtest_paths.txt", "r") as f:
             for line in f:
                 paths.append(line)
                         

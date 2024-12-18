@@ -37,7 +37,7 @@ class WERScore:
         # self.model_2 = AutoModel(model="paraformer-zh").to(device)
 
     def score_en(self, wav: torch.tensor,text:torch.tensor) -> torch.tensor:
-        input_features = self.processor(wav, sampling_rate=16000, return_tensors="pt").input_features
+        input_features = self.processor(wav.cpu(), sampling_rate=16000, return_tensors="pt").input_features
         input_features = input_features.to(self.device)
         forced_decoder_ids = self.processor.get_decoder_prompt_ids(language="english", task="transcribe")
         predicted_ids = self.model.generate(input_features, forced_decoder_ids=forced_decoder_ids)
