@@ -6,8 +6,45 @@ from torch import einsum
 from einops import rearrange
 from collections import namedtuple
 import math
-
+import typing as tp
+from einops import rearrange, repeat
 LossBreakdown = namedtuple('LossBreakdown', ['per_sample_entropy', 'codebook_entropy', 'commitment', 'avg_probs'])
+
+
+def sample_vectors(samples, num: int):
+    num_samples, device = samples.shape[0], samples.device
+
+    if num_samples >= num:
+        indices = torch.randperm(num_samples, device=device)[:num]
+    else:
+        indices = torch.randint(0, num_samples, (num,), device=device)
+
+    return samples[indices]
+
+def kmeans(samples, num_clusters: int, num_iters: int = 10):
+    dim, dtype = samples.shape[-1], samples.dtype
+
+    means = sample_vectors(samples, num_clusters)
+
+    for _ in range(num_iters):
+        diffs = rearrange(samples, "n d -> n () d") - rearrange(
+            means, "c d -> () c d"
+        )
+        dists = -(diffs ** 2).sum(dim=-1)
+
+        buckets = dists.max(dim=-1).indices
+        bins = torch.bincount(buckets, minlength=num_clusters)
+        zero_mask = bins == 0
+        bins_min_clamped = bins.masked_fill(zero_mask, 1)
+
+        new_means = buckets.new_zeros(num_clusters, dim, dtype=dtype)
+        new_means.scatter_add_(0, repeat(buckets, "n -> n d", d=dim), samples)
+        new_means = new_means / bins_min_clamped[..., None]
+
+        means = torch.where(zero_mask[..., None], means, new_means)
+
+    return means, bins
+
 
 class SimVQ(nn.Module):
     """
@@ -24,7 +61,7 @@ class SimVQ(nn.Module):
         self.e_dim = e_dim
         self.beta = beta
         self.legacy = legacy
-
+        self.kmeans_iters= 50
         self.embedding = nn.Embedding(self.n_e, self.e_dim)
         nn.init.normal_(self.embedding.weight, mean=0, std=self.e_dim**-0.5)
         for p in self.embedding.parameters():
@@ -60,6 +97,13 @@ class SimVQ(nn.Module):
         else:
             new[unknown] = self.unknown_index
         return new.reshape(ishape)
+    
+    def init_embed_(self, data):
+        if self.inited:
+            return
+        means, self.cluster_size = kmeans(data, self.n_e, self.kmeans_iters)
+        self.embedding.weight.data.copy_(means)
+        self.embedding.weight.data = self.broadcast(self.embedding.weight.data)
 
     def unmap_to_all(self, inds):
         ishape = inds.shape
