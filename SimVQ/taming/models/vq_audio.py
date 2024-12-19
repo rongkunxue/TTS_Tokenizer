@@ -72,7 +72,7 @@ class VQModel(L.LightningModule):
         self.encoder = Encoder(**ddconfig)
         self.decoder = Decoder(**ddconfig)
         self.backbone = Backbone(
-            input_channels=512, 
+            input_channels=1024, 
             dim=768,
             intermediate_dim=2304,
             num_layers=12,
@@ -84,7 +84,7 @@ class VQModel(L.LightningModule):
             hop_length=320,
             padding="same"
         )
-        self.transform = nn.Linear(512,768)
+        self.transform = nn.Linear(1024,768)
         # self.VideoMLP=VideoMLP(10,75)
         # self.VideoConv=VideoConv(75)
         self.loss = instantiate_from_config(lossconfig)
