@@ -45,7 +45,7 @@ class VideoConv(nn.Module):
         x = self.transconv(x) 
         x = x.transpose(1, 2) 
         return x
-    
+
 class VQModel(L.LightningModule):
     def __init__(self,
                  ddconfig,
@@ -80,11 +80,17 @@ class VQModel(L.LightningModule):
         )
         self.head = FourierHead(
             dim=768,
-            n_fft=1024,
-            hop_length=320,
+            n_fft=2048,
+            hop_length=800,
             padding="same"
         )
-        self.transform = nn.Linear(1024,768)
+        self.conv_transpose = nn.ConvTranspose1d(
+            in_channels=1024,
+            out_channels=768,
+            kernel_size=34,
+            stride=2,
+            padding=1,
+        )
         # self.VideoMLP=VideoMLP(10,75)
         # self.VideoConv=VideoConv(75)
         self.loss = instantiate_from_config(lossconfig)
@@ -197,8 +203,11 @@ class VQModel(L.LightningModule):
         dec = self.decode(quant)
         for ind in indices.unique():
             self.codebook_count[ind] = 1
-        feature = rearrange(quant[0], 'b d t -> b t d')
-        feature = self.transform(feature)
+        # feature = rearrange(quant[0], 'b d t -> b t d')
+        # feature = self.transform(feature)
+        # feature = rearrange(feature, 'b t d -> b d t')
+        feature = self.conv_transpose(quant[0])
+        feature = rearrange(feature, 'b d t -> b t d')
         return dec, diff, loss_break,feature
     
     def d_axis_distill_loss(self,feature, target_feature):
@@ -307,7 +316,8 @@ class VQModel(L.LightningModule):
         opt_gen = torch.optim.Adam(list(self.encoder.parameters())+
                                   list(self.decoder.parameters())+
                                 # list(self.VideoConv.parameters())+
-                                  list(self.transform.parameters())+
+                                # list(self.transform.parameters())+
+                                  list(self.conv_transpose.parameters())+
                                   list(self.quantize.parameters())+
                                   list(self.backbone.parameters())+
                                   list(self.head.parameters()),
