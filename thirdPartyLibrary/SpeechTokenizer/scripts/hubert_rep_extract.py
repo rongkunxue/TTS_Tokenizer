@@ -12,11 +12,11 @@ import os
 if __name__ == '__main__':
     
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config', '-c', type=str, help='Config file path')
-    parser.add_argument('--rep_dir', type=str, help='Path to save representation files')
-    parser.add_argument('--exts', type=str, help="Audio file extensions, splitting with ','", default='flac')
+    parser.add_argument('--config', '-c', type=str, default="config/spt_base_cfg.json")
+    parser.add_argument('--rep_dir', type=str, default="/mnt/nfs3/zhangjinouwen/dataset/LibriTTS/rep")
+    parser.add_argument('--exts', type=str, help="Audio file extensions, splitting with ','", default='wav')
     parser.add_argument('--split_seed', type=int, help="Random seed", default=0)
-    parser.add_argument('--valid_set_size', type=float, default=1000)
+    parser.add_argument('--valid_set_size', type=float, default=1500)
     args = parser.parse_args()
     exts = args.exts.split(',')
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
