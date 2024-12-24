@@ -15,7 +15,7 @@ from taming.modules.util import requires_grad
 from collections import OrderedDict
 from taming.modules.ema import LitEma
 from einops import rearrange
-from vector_quantize_pytorch import SimVQ
+from vector_quantize_pytorch import FSQ
 import torch.nn as nn
 
 import torch.nn as nn
@@ -100,16 +100,10 @@ class VQModel(L.LightningModule):
         self.audio_normalize = audio_normalize
         
         # self.quantize = instantiate_from_config(quantconfig)
-        self.quantize = SimVQ(
-            dim = 512,
-            codebook_size = 8192,
-            rotation_trick = True,  
-            codebook_transform = nn.Sequential(
-                nn.Linear(512, 1024),
-                nn.ReLU(),
-                nn.Linear(1024, 512)
-            ),
-            channel_first= True
+        self.quantize = FSQ(
+            dim=512,
+            levels=[8,5,5,3],
+            channel_first=True,
         )
         self.use_ema = use_ema
         self.stage = stage

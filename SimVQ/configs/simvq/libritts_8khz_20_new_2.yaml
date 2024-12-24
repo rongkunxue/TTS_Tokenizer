@@ -29,14 +29,14 @@ model:
   init_args:
     ddconfig:
       causal: true
-      dimension: 1024
+      dimension: 512
       ratios: [8,5,5,4]
     
     quantconfig:
       target: taming.modules.vqvae.quantize.SimVQ1D
       params:
         n_e: 8192
-        e_dim: 1024
+        e_dim: 512
         beta: 0.25
         legacy: false
 
