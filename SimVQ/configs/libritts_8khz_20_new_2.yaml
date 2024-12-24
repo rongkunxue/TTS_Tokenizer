@@ -12,7 +12,7 @@ trainer:
   callbacks:
     - class_path: lightning.pytorch.callbacks.ModelCheckpoint
       init_args:
-        dirpath: "vq_audio_log/8k_ration_20_loss_new" # Please specify your own path
+        dirpath: "test/8k_ration_20_loss_new" # Please specify your own path
         save_top_k: -1 # save all checkpoints
     - class_path: lightning.pytorch.callbacks.LearningRateMonitor
       init_args:
@@ -20,7 +20,7 @@ trainer:
   logger:
     class_path: lightning.pytorch.loggers.TensorBoardLogger
     init_args:
-      save_dir: "vq_audio_log/8k_ration_20_loss_new" #Please specify your own path
+      save_dir: "test/8k_ration_20_loss_new" #Please specify your own path
       version: "1second"
       name: "tmp"
 

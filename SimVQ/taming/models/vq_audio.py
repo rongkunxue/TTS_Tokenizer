@@ -15,6 +15,8 @@ from taming.modules.util import requires_grad
 from collections import OrderedDict
 from taming.modules.ema import LitEma
 from einops import rearrange
+from vector_quantize_pytorch import SimVQ
+import torch.nn as nn
 
 import torch.nn as nn
 class VideoMLP(nn.Module):
@@ -97,7 +99,18 @@ class VQModel(L.LightningModule):
         
         self.audio_normalize = audio_normalize
         
-        self.quantize = instantiate_from_config(quantconfig)
+        # self.quantize = instantiate_from_config(quantconfig)
+        self.quantize = SimVQ(
+            dim = 512,
+            codebook_size = 8192,
+            rotation_trick = True,  
+            codebook_transform = nn.Sequential(
+                nn.Linear(512, 1024),
+                nn.ReLU(),
+                nn.Linear(1024, 512)
+            ),
+            channel_first= True
+        )
         self.use_ema = use_ema
         self.stage = stage
         if ckpt_path is not None:
@@ -183,8 +196,9 @@ class VQModel(L.LightningModule):
             scale = None
         
         h = self.encoder(x)
-        (quant, emb_loss, info), loss_breakdown = self.quantize(h)
-        return (quant, scale), emb_loss, info, loss_breakdown
+        # (quant, emb_loss, info), loss_breakdown = self.quantize(h)
+        quant, info, loss_breakdown = self.quantize(h)
+        return (quant, scale), torch.tensor(0.0), info, loss_breakdown
 
     def decode(self, quant_tuple):
         quant, scale = quant_tuple
@@ -276,10 +290,10 @@ class VQModel(L.LightningModule):
             self.model_ema(self)
             
     def on_train_epoch_start(self):
-        self.codebook_count = [0] * self.quantize.n_e
+        self.codebook_count = [0] * 8192
         
     def on_validation_epoch_start(self):
-        self.codebook_count = [0] * self.quantize.n_e
+        self.codebook_count = [0] * 8192
 
     def validation_step(self, batch, batch_idx): 
         if self.use_ema:
