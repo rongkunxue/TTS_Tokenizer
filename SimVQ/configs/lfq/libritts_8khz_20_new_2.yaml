@@ -2,7 +2,7 @@ seed_everything: true
 trainer:
   accelerator: gpu
   strategy: ddp_find_unused_parameters_true
-  devices: 4
+  devices: 1
   num_nodes: 1
   precision: 32
   max_epochs: 50
