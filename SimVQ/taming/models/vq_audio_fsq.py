@@ -191,8 +191,8 @@ class VQModel(L.LightningModule):
         
         h = self.encoder(x)
         # (quant, emb_loss, info), loss_breakdown = self.quantize(h)
-        quant, info, loss_breakdown = self.quantize(h)
-        return (quant, scale), torch.tensor(0.0), info, loss_breakdown
+        quant, info = self.quantize(h)
+        return (quant, scale), torch.tensor(0.0), info, 0.0
 
     def decode(self, quant_tuple):
         quant, scale = quant_tuple

@@ -12,7 +12,7 @@ trainer:
   callbacks:
     - class_path: lightning.pytorch.callbacks.ModelCheckpoint
       init_args:
-        dirpath: "vq_audio/8k_ration_20_hubertloss_fsq" # Please specify your own path
+        dirpath: "vq_audio_fsq/8k_ration_20_hubertloss" # Please specify your own path
         save_top_k: -1 # save all checkpoints
     - class_path: lightning.pytorch.callbacks.LearningRateMonitor
       init_args:
@@ -20,7 +20,7 @@ trainer:
   logger:
     class_path: lightning.pytorch.loggers.TensorBoardLogger
     init_args:
-      save_dir: "vq_audio/8k_ration_20_hubertloss_fsq" #Please specify your own path
+      save_dir: "vq_audio_fsq/8k_ration_20_hubertloss" #Please specify your own path
       version: "1second"
       name: "tmp"
 
@@ -58,7 +58,7 @@ data:
   init_args:
     batch_size: 6
     num_workers: 8
-    train_path : "/root/Github/TTS_Tokenizer/thirdPartyLibrary/SpeechTokenizer/train_file_list.txt"
-    val_path : "/root/Github/TTS_Tokenizer/thirdPartyLibrary/SpeechTokenizer/dev_file_list.txt"
+    train_path : "/root/Github/TTS_Tokenizer/thirdPartyLibrary/SpeechTokenizer/easy_train_file_list.txt"
+    val_path : "/root/Github/TTS_Tokenizer/thirdPartyLibrary/SpeechTokenizer/easy_dev_file_list.txt"
 
 ckpt_path: null

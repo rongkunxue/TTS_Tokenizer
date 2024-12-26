@@ -58,7 +58,7 @@ def main(args):
 
     config_model = load_config(args.config_file, display=False)
     model = load_vqgan_new(config_model, ckpt_path=args.ckpt_path).to(DEVICE)
-    codebook_size = model.quantize.n_e
+    codebook_size = 8192
 
     def pad_collate_fn(batch):
         """Collate function for padding sequences."""

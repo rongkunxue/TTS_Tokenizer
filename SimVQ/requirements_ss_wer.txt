@@ -1,0 +1,11 @@
+funasr
+zhconv
+modelscope
+librosa
+pydub
+onnx
+onnxconverter-common
+fire
+jiwer
+zhon
+#funasr maybe nor support with the program
