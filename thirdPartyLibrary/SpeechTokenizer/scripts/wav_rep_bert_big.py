@@ -34,7 +34,7 @@ if __name__ == '__main__':
     
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', '-c', type=str, default="config/spt_base_cfg.json")
-    parser.add_argument('--rep_dir', type=str, default="/mnt/nfs3/zhangjinouwen/dataset/LibriTTS/rep")
+    parser.add_argument('--rep_dir', type=str, default="/mnt/nfs3/zhangjinouwen/dataset/rep/wav2vec2")
     parser.add_argument('--exts', type=str, help="Audio file extensions, splitting with ','", default='wav,mp3')
     parser.add_argument('--split_seed', type=int, help="Random seed", default=0)
     parser.add_argument('--valid_set_size', type=float, default=1500)
@@ -50,18 +50,20 @@ if __name__ == '__main__':
             "facebook/w2v-bert-2.0")
     semantic_model, semantic_mean, semantic_std = build_semantic_model(device)
     target_layer = cfg.get('semantic_model_layer')
-    path1 = Path("/mnt/nfs3/zhangjinouwen/dataset/LibriTTS/train-clean-100")
+    path1 = Path("//mnt/nfs3/zhangjinouwen/dataset/checkpoint")
+    path2 = Path("/mnt/nfs3/zhangjinouwen/dataset/LibriTTS/train-clean-100")
+    path3 = Path("/mnt/nfs3/zhangjinouwen/dataset/LibriTTS/train-clean-360")
     file_list = [
         str(file) for ext in exts 
-        for path in [path1] 
+        for path in [path1,path2,path3] 
         for file in path.glob(f'**/*.{ext}')
     ]
     if args.valid_set_size != 0 and args.valid_set_size < 1:
         valid_set_size = int(len(file_list) * args.valid_set_size)
     else:
         valid_set_size = int(args.valid_set_size)
-    train_file_list = "/root/Github/TTS_Tokenizer/data/rep_wav_train.txt"
-    valid_file_list = "/root/Github/TTS_Tokenizer/data/rep_wav_eval.txt"
+    train_file_list = "/root/Github/TTS_Tokenizer/data/rep_big_wav_train.txt"
+    valid_file_list = "/root/Github/TTS_Tokenizer/data/rep_big_wav_eval.txt"
     segment_size = cfg.get('segment_size')
     random.seed(args.split_seed)
     random.shuffle(file_list)
