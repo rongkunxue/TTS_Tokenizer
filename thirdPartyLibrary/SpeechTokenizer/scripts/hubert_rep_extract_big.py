@@ -38,8 +38,8 @@ if __name__ == '__main__':
         valid_set_size = int(len(file_list) * args.valid_set_size)
     else:
         valid_set_size = int(args.valid_set_size)
-    train_file_list = "/root/Github/TTS_Tokenizer/data/rep_big_hubert_train.txt"
-    valid_file_list = "/root/Github/TTS_Tokenizer/data/rep_big_hubert_eval.txt"
+    train_file_list = "/mnt/nfs3/zhangjinouwen/dataset/rep/rep_big_hubert_train.txt"
+    valid_file_list = "/mnt/nfs3/zhangjinouwen/dataset/rep/rep_big_hubert_eval.txt"
     segment_size = cfg.get('segment_size')
     random.seed(args.split_seed)
     random.shuffle(file_list)
@@ -58,9 +58,11 @@ if __name__ == '__main__':
             else:
                 rep = ouput.hidden_states[target_layer]
             if str(path1) in audio_file:
-                rep_file = audio_file.replace(str(path1), f"{args.rep_dir}/clean100").split('.')[0] +'.hubert.npy'
+                rep_file = audio_file.replace(str(path1), f"{args.rep_dir}/emilia").split('.')[0] +'.hubert.npy'
+            elif str(path2) in audio_file:
+                rep_file = audio_file.replace(str(path2), f"{args.rep_dir}/clean100").split('.')[0] +'.hubert.npy'
             else :
-                rep_file = audio_file.replace(str(path2), f"{args.rep_dir}/clean360").split('.')[0] + '.hubert.npy'
+                rep_file = audio_file.replace(str(path3), f"{args.rep_dir}/clean360").split('.')[0] + '.hubert.npy'
             rep_sub_dir = '/'.join(rep_file.split('/')[:-1])
             if not os.path.exists(rep_sub_dir):
                 os.makedirs(rep_sub_dir)
