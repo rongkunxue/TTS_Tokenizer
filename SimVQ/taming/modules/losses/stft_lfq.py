@@ -74,9 +74,11 @@ class VQSTFTWithDiscriminator(nn.Module):
                 + loss_dac_1
                 + loss_dac_2)
                 + self.mel_loss_coeff * mel_loss
+                + self.commit_weight * loss_break
             )
 
             log = {"{}/total_loss".format(split): loss.clone().detach(),
+                    "{}/commit_loss".format(split): loss_break.detach(),
                     "{}/reconstruct_loss".format(split): rec_loss.detach(),
                     "{}/multi_period_loss".format(split): loss_gen_mp.detach(),
                     "{}/multi_res_loss".format(split): loss_gen_mrd.detach(),

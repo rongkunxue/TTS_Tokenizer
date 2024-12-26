@@ -2,7 +2,7 @@ seed_everything: true
 trainer:
   accelerator: gpu
   strategy: ddp_find_unused_parameters_true
-  devices: 1
+  devices: 4
   num_nodes: 1
   precision: 32
   max_epochs: 50
@@ -58,7 +58,7 @@ data:
   init_args:
     batch_size: 6
     num_workers: 8
-    train_path : "/root/Github/TTS_Tokenizer/thirdPartyLibrary/SpeechTokenizer/train_file_list.txt"
-    val_path : "/root/Github/TTS_Tokenizer/thirdPartyLibrary/SpeechTokenizer/dev_file_list.txt"
+    train_path : "/root/Github/TTS_Tokenizer/thirdPartyLibrary/SpeechTokenizer/easy_train_file_list.txt"
+    val_path : "/root/Github/TTS_Tokenizer/thirdPartyLibrary/SpeechTokenizer/easy_dev_file_list.txt"
 
 ckpt_path: null
