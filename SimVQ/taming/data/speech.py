@@ -50,24 +50,34 @@ class speechttsBase(Dataset):
                 "prompt_wav_path": self.data[i][2],
             }
                
-            
-class speechttsTest_zh(speechttsBase):
-    NAME = "zh"
-    def _load(self):
-        txt_filelist = os.path.join(self.data_root, self.NAME + ".txt")
-        with open(txt_filelist, "r") as f:
-            self.data = f.read().splitlines()
-
 class speechttsTest_en(speechttsBase):
-    NAME = "en"
     def _load(self):
         f = open(self.metalst)
         lines = f.readlines()
         self.data = [line.strip().split('|') for line in lines]
         
 if __name__ == "__main__":
-    data_module = speechttsTest_en(metalst="/root/Github/TTS_Tokenizer/data/ref.txt")
-    train_loader = torch.utils.data.DataLoader(data_module, batch_size=10, num_workers=4, shuffle=True)
+    # data_module = speechttsTest_en(metalst="/root/Github/TTS_Tokenizer/data/ref.txt")
+    # train_loader = torch.utils.data.DataLoader(data_module, batch_size=10, num_workers=4, shuffle=True)
+    # for batch in train_loader:
+    #     a=1
+    #     break
+    def pad_collate_fn(batch):
+            """Collate function for padding sequences."""
+            return {
+                "waveform": torch.nn.utils.rnn.pad_sequence(
+                    [x["waveform"].transpose(0, 1) for x in batch], 
+                    batch_first=True, 
+                    padding_value=0.
+                ).permute(0, 2, 1),
+                "prompt_text": [x["prompt_text"] for x in batch],
+                "infer_text": [x["infer_text"] for x in batch],
+                "utt": [x["utt"] for x in batch],
+                "audio_path": [x["audio_path"] for x in batch],
+                "prompt_wav_path": [x["prompt_wav_path"] for x in batch]    
+            }
+    data_module=speechttsTest_en("/root/Github/TTS_Tokenizer/data/test_other.txt")
+    train_loader = torch.utils.data.DataLoader(data_module, batch_size=10, num_workers=4, shuffle=True,collate_fn=pad_collate_fn)
     for batch in train_loader:
         a=1
         break

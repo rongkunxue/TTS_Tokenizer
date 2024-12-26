@@ -3,7 +3,9 @@ import sys
 sys.path.append(os.getcwd())
 import glob
 from metrics.UTMOS import UTMOSScore
+from metrics.ss import SimScore
 from metrics.periodicity import calculate_periodicity_metrics
+from metrics.wer import WERScore
 import torchaudio
 from pesq import pesq
 import numpy as np
@@ -12,15 +14,13 @@ import math
 from pystoi import stoi
 from pathlib import Path
 from tqdm import tqdm
-from taming.data.easylibritts import LibriTTSTestOther, LibriTTSTestClean
+from SimVQ.taming.data.speech import speechttsTest_en
 import importlib
 from omegaconf import OmegaConf
 import argparse
 from torch import utils
-
+metalst="/root/Github/TTS_Tokenizer/data/test_other.txt"
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-data_path_str="/mnt/nfs3/zhangjinouwen/dataset/LibriTTS"
 
 def load_config(config_path, display=False):
     config = OmegaConf.load(config_path)
@@ -55,60 +55,70 @@ from omegaconf import DictConfig
 
 def main(args):
     config_data = OmegaConf.load(args.config_file)
-
     config_model = load_config(args.config_file, display=False)
     model = load_vqgan_new(config_model, ckpt_path=args.ckpt_path).to(DEVICE)
     codebook_size = 8192
-
-    def pad_collate_fn(batch):
-        """Collate function for padding sequences."""
-        return {
-            "waveform": torch.nn.utils.rnn.pad_sequence(
-                [x["waveform"].transpose(0, 1) for x in batch], 
-                batch_first=True, 
-                padding_value=0.
-            ).permute(0, 2, 1),
-            "audio_path": [x["audio_path"] for x in batch],
-        }
-    LibriTTSTestOther_dataset = LibriTTSTestOther(data_path_str)
-    test_other_loader = utils.data.DataLoader(LibriTTSTestOther_dataset, batch_size=1, shuffle=False, num_workers=4, collate_fn=pad_collate_fn)
-
     usage = {}
     for i in range(codebook_size):
         usage[i] = 0
-        
-    paths = []
-    
-    with torch.no_grad():
-        for batch in tqdm(test_other_loader):
-            assert batch["waveform"].shape[0] == 1
-            paths.append(batch["audio_path"][0])
-            
-            
-            audio = batch["waveform"].to(DEVICE)
-        
-            if model.use_ema:
-                with model.ema_scope():
+    if not os.path.exists(f"{args.ckpt_path.parent}/recons/seedtest_paths.txt"):
+        def pad_collate_fn(batch):
+            """Collate function for padding sequences."""
+            return {
+                "waveform": torch.nn.utils.rnn.pad_sequence(
+                    [x["waveform"].transpose(0, 1) for x in batch], 
+                    batch_first=True, 
+                    padding_value=0.
+                ).permute(0, 2, 1),
+                "prompt_text": [x["prompt_text"] for x in batch],
+                "infer_text": [x["infer_text"] for x in batch],
+                "utt": [x["utt"] for x in batch],
+                "audio_path": [x["audio_path"] for x in batch],
+                "prompt_wav_path": [x["prompt_wav_path"] for x in batch]    
+            }
+        speechdataset = speechttsTest_en(metalst)
+        test_loader = utils.data.DataLoader(speechdataset, batch_size=1, shuffle=False, num_workers=4, collate_fn=pad_collate_fn)
+        paths=[]
+        with torch.no_grad():
+            for batch in tqdm(test_loader):
+                assert batch["waveform"].shape[0] == 1
+                utt = batch["utt"][0]
+                prompt_text = batch["prompt_text"][0]
+                infer_text = batch["infer_text"][0]
+                prompt_wav_path = batch["prompt_wav_path"][0]
+                orgin_wav_path = batch["audio_path"][0].replace("infer","wavs")
+                audio = batch["waveform"].to(DEVICE)
+                if model.use_ema:
+                    with model.ema_scope():
+                        quant, diff, indices, _ = model.encode(audio)
+                        reconstructed_audios = model.decode(quant)
+                else:
                     quant, diff, indices, _ = model.encode(audio)
                     reconstructed_audios = model.decode(quant)
-            else:
-               quant, diff, indices, _ = model.encode(audio)
-               reconstructed_audios = model.decode(quant)
-               
-            for index in indices.flatten():
-                usage[index.item()] += 1
-                
-
-            audio_path = args.ckpt_path.parent / "recons" / batch["audio_path"][0]
-            audio_path.parent.mkdir(parents=True, exist_ok=True)
-            torchaudio.save(audio_path.as_posix(), reconstructed_audios[0].cpu().clip(min=-0.99, max=0.99), sample_rate=16000, encoding='PCM_S', bits_per_sample=16)
-            
-            
+                for index in indices.flatten():
+                    usage[index.item()] += 1
+                    
+                generative_audio_path = os.path.join(f"{args.ckpt_path.parent}/recons/test_other/{utt}.wav")
+                directory = os.path.dirname(generative_audio_path)
+                os.makedirs(directory, exist_ok=True)
+                torchaudio.save(generative_audio_path, reconstructed_audios[0].cpu().clip(min=-0.99, max=0.99), sample_rate=16000, encoding='PCM_S', bits_per_sample=16)
+                out_line = '|'.join([utt, prompt_text, prompt_wav_path,infer_text,orgin_wav_path,generative_audio_path])
+                paths.append(out_line)
+            with open(f"{args.ckpt_path.parent}/recons/seedtest_paths.txt", "w") as f:
+                for path in paths:
+                    f.write(path + "\n")
+    else:
+        paths = []
+        f = open(f"{args.ckpt_path.parent}/recons/seedtest_paths.txt")
+        lines = f.readlines()
+        paths = [line.strip() for line in lines]
+                        
     num_count = sum([1 for key, value in usage.items() if value > 0])
     utilization = num_count / codebook_size
     
     UTMOS=UTMOSScore(device=DEVICE)
-
+    Sim=SimScore(device=DEVICE)
+    wer=WERScore(device=DEVICE)
     utmos_sumgt=0
     utmos_sumencodec=0
     pesq_sumpre=0
@@ -116,9 +126,13 @@ def main(args):
     stoi_sumpre=[]
     f1score_filt=0
 
+    sim_rec_all=0
+
+    wer_score=0
+
     for i in tqdm(range(len(paths))):
-        rawwav,rawwav_sr=torchaudio.load(os.path.join(data_path_str, paths[i]))
-        prewav,prewav_sr=torchaudio.load((args.ckpt_path.parent / "recons" / paths[i]).as_posix())
+        rawwav,rawwav_sr=torchaudio.load(paths[i].split("|")[4])
+        prewav,prewav_sr=torchaudio.load(paths[i].split("|")[5])
         
         rawwav=rawwav.to(DEVICE)
         prewav=prewav.to(DEVICE)
@@ -156,6 +170,14 @@ def main(args):
             f1score_sumpre+=f1_score
         # breakpoint()
 
+        text=paths[i].split("|")[3]
+        wer_s = wer.score_en(prewav_16k,text)
+        wer_score+=wer_s
+        print("****wer",wer_s)
+
+        sim_rec =Sim.score(rawwav_16k,prewav_16k)
+        sim_rec_all+=sim_rec
+        print("****similarity_rec",sim_rec)
 
         ## 4.STOI
         # for ljspeech
@@ -185,7 +207,9 @@ def main(args):
         print_and_save(f"PESQ: {pesq_sumpre}, {pesq_sumpre/len(paths)}", f)
         print_and_save(f"F1_score: {f1score_sumpre}, {f1score_sumpre/(len(paths)-f1score_filt)}, {f1score_filt}", f)
         print_and_save(f"STOI: {np.mean(stoi_sumpre)}", f)
+        print_and_save(f"similarity_rec: {sim_rec_all/len(paths)}", f)
         print_and_save(f"utilization: {utilization}", f)
+        print_and_save(f"WER: {wer_score/len(paths)}", f)
     
     
 def get_args():
