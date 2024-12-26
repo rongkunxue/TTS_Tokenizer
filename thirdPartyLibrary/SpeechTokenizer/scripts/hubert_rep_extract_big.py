@@ -29,9 +29,10 @@ if __name__ == '__main__':
     path1 = Path("/mnt/nfs3/zhangjinouwen/dataset/checkpoint")
     path2 = Path("/mnt/nfs3/zhangjinouwen/dataset/LibriTTS/train-clean-100")
     path3 = Path("/mnt/nfs3/zhangjinouwen/dataset/LibriTTS/train-clean-360")
+    path4 = Path("/mnt/nfs3/zhangjinouwen/dataset/EMiliazh")
     file_list = [
         str(file) for ext in exts 
-        for path in [path1, path2,path3] 
+        for path in [path1, path2,path3,path4] 
         for file in path.glob(f'**/*.{ext}')
     ]
     if args.valid_set_size != 0 and args.valid_set_size < 1:
@@ -58,9 +59,11 @@ if __name__ == '__main__':
             else:
                 rep = ouput.hidden_states[target_layer]
             if str(path1) in audio_file:
-                rep_file = audio_file.replace(str(path1), f"{args.rep_dir}/emilia").split('.')[0] +'.hubert.npy'
+                rep_file = audio_file.replace(str(path1), f"{args.rep_dir}/emiliaen").split('.')[0] +'.hubert.npy'
             elif str(path2) in audio_file:
                 rep_file = audio_file.replace(str(path2), f"{args.rep_dir}/clean100").split('.')[0] +'.hubert.npy'
+            elif str(path4) in audio_file:
+                rep_file = audio_file.replace(str(path2), f"{args.rep_dir}/emiliazh").split('.')[0] +'.hubert.npy'
             else :
                 rep_file = audio_file.replace(str(path3), f"{args.rep_dir}/clean360").split('.')[0] + '.hubert.npy'
             rep_sub_dir = '/'.join(rep_file.split('/')[:-1])
