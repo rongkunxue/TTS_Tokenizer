@@ -26,7 +26,7 @@ if __name__ == '__main__':
     feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained("facebook/hubert-base-ls960",cache_dir="/checkpoint")
     model = HubertModel.from_pretrained("facebook/hubert-base-ls960",cache_dir="checkpoint").eval().to(device)
     target_layer = cfg.get('semantic_model_layer')
-    path1 = Path("//mnt/nfs3/zhangjinouwen/dataset/checkpoint")
+    path1 = Path("/mnt/nfs3/zhangjinouwen/dataset/checkpoint")
     path2 = Path("/mnt/nfs3/zhangjinouwen/dataset/LibriTTS/train-clean-100")
     path3 = Path("/mnt/nfs3/zhangjinouwen/dataset/LibriTTS/train-clean-360")
     file_list = [

@@ -50,7 +50,7 @@ if __name__ == '__main__':
             "facebook/w2v-bert-2.0")
     semantic_model, semantic_mean, semantic_std = build_semantic_model(device)
     target_layer = cfg.get('semantic_model_layer')
-    path1 = Path("//mnt/nfs3/zhangjinouwen/dataset/checkpoint")
+    path1 = Path("/mnt/nfs3/zhangjinouwen/dataset/checkpoint")
     path2 = Path("/mnt/nfs3/zhangjinouwen/dataset/LibriTTS/train-clean-100")
     path3 = Path("/mnt/nfs3/zhangjinouwen/dataset/LibriTTS/train-clean-360")
     file_list = [
