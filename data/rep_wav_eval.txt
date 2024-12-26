@@ -1,0 +1,1 @@
+/mnt/nfs3/zhangjinouwen/dataset/LibriTTS/train-clean-100/4051/10927/4051_10927_000028_000000.wav	/mnt/nfs3/zhangjinouwen/dataset/LibriTTS/rep/clean100/4051/10927/4051_10927_000028_000000.hubert.npy
