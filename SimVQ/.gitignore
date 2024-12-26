@@ -6,3 +6,7 @@ vq_log
 test
 vq_audio
 vq_audio_*
+core*
+events*
+*.png
+*.yaml
