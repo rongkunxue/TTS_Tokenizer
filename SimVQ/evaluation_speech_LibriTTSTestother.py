@@ -14,13 +14,18 @@ import math
 from pystoi import stoi
 from pathlib import Path
 from tqdm import tqdm
-from SimVQ.taming.data.speech import speechttsTest_en
+from taming.data.speech import speechttsTest_en
 import importlib
 from omegaconf import OmegaConf
 import argparse
 from torch import utils
 metalst="/root/Github/TTS_Tokenizer/data/test_other.txt"
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+
+def print_and_save(message, file):
+    print(message)  
+    file.write(message + '\n') 
 
 def load_config(config_path, display=False):
     config = OmegaConf.load(config_path)
@@ -61,7 +66,7 @@ def main(args):
     usage = {}
     for i in range(codebook_size):
         usage[i] = 0
-    if not os.path.exists(f"{args.ckpt_path.parent}/recons/seedtest_paths.txt"):
+    if not os.path.exists(f"{args.ckpt_path.parent}/recons/test_other.txt"):
         def pad_collate_fn(batch):
             """Collate function for padding sequences."""
             return {
@@ -104,17 +109,21 @@ def main(args):
                 torchaudio.save(generative_audio_path, reconstructed_audios[0].cpu().clip(min=-0.99, max=0.99), sample_rate=16000, encoding='PCM_S', bits_per_sample=16)
                 out_line = '|'.join([utt, prompt_text, prompt_wav_path,infer_text,orgin_wav_path,generative_audio_path])
                 paths.append(out_line)
-            with open(f"{args.ckpt_path.parent}/recons/seedtest_paths.txt", "w") as f:
+            num_count = sum([1 for key, value in usage.items() if value > 0])
+            utilization = num_count / codebook_size
+            with open(f"{args.ckpt_path.parent}/recons/test_other.txt", "w") as f:
                 for path in paths:
                     f.write(path + "\n")
+            with open(Path(args.ckpt_path).parent / "test_other_result.txt", 'w') as f:
+                print_and_save(f"utilization: {utilization}", f)
+
+
     else:
         paths = []
-        f = open(f"{args.ckpt_path.parent}/recons/seedtest_paths.txt")
+        f = open(f"{args.ckpt_path.parent}/recons/test_other.txt")
         lines = f.readlines()
         paths = [line.strip() for line in lines]
                         
-    num_count = sum([1 for key, value in usage.items() if value > 0])
-    utilization = num_count / codebook_size
     
     UTMOS=UTMOSScore(device=DEVICE)
     Sim=SimScore(device=DEVICE)
@@ -197,9 +206,6 @@ def main(args):
         print("****stoi",tmp_stoi)
         stoi_sumpre.append(tmp_stoi)
         
-    def print_and_save(message, file):
-        print(message)  
-        file.write(message + '\n') 
         
     with open(Path(args.ckpt_path).parent / "test_other_result.txt", 'w') as f:
         print_and_save(f"UTMOS_raw: {utmos_sumgt}, {utmos_sumgt/len(paths)}", f)
@@ -208,7 +214,6 @@ def main(args):
         print_and_save(f"F1_score: {f1score_sumpre}, {f1score_sumpre/(len(paths)-f1score_filt)}, {f1score_filt}", f)
         print_and_save(f"STOI: {np.mean(stoi_sumpre)}", f)
         print_and_save(f"similarity_rec: {sim_rec_all/len(paths)}", f)
-        print_and_save(f"utilization: {utilization}", f)
         print_and_save(f"WER: {wer_score/len(paths)}", f)
     
     

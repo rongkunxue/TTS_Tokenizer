@@ -14,7 +14,7 @@ import math
 from pystoi import stoi
 from pathlib import Path
 from tqdm import tqdm
-from SimVQ.taming.data.speech import speechttsTest_en
+from taming.data.speech import speechttsTest_en
 import importlib
 from omegaconf import OmegaConf
 import argparse
@@ -107,14 +107,16 @@ def main(args):
             with open(f"{args.ckpt_path.parent}/recons/seedtest_paths.txt", "w") as f:
                 for path in paths:
                     f.write(path + "\n")
+            num_count = sum([1 for key, value in usage.items() if value > 0])
+            utilization = num_count / codebook_size
+            with open(Path(args.ckpt_path).parent / "speedtest_en_result.txt", 'w') as f:
+                print_and_save(f"utilization: {utilization}", f)
     else:
         paths = []
         f = open(f"{args.ckpt_path.parent}/recons/seedtest_paths.txt")
         lines = f.readlines()
         paths = [line.strip() for line in lines]
                         
-    num_count = sum([1 for key, value in usage.items() if value > 0])
-    utilization = num_count / codebook_size
     
     UTMOS=UTMOSScore(device=DEVICE)
     Sim=SimScore(device=DEVICE)
@@ -219,7 +221,6 @@ def main(args):
         print_and_save(f"STOI: {np.mean(stoi_sumpre)}", f)
         print_and_save(f"similarity_rec: {sim_rec_all/len(paths)}", f)
         print_and_save(f"similarity_pro_wav: {sim_pro_wav_all/len(paths)}", f)
-        print_and_save(f"utilization: {utilization}", f)
         print_and_save(f"WER: {wer_score/len(paths)}", f)
     
     
