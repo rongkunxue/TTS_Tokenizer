@@ -5,18 +5,16 @@
         "name": "Python: Debug main.py",
         "type": "python",
         "request": "launch",
-        "program": "${workspaceFolder}/main.py",
+        "program": "${workspaceFolder}/evaluation_speech_LibriTTSTestother.py",
         "args": [
-          "fit",
-          "--config",
-          "configs/lfq/libritts_8khz_20_new_2.yaml"
+          "--config_file","/root/Github/TTS_Tokenizer/SimVQ/vq_audio_log/8k_ration_20_loss_new/tmp/1second/config.yaml",
+          "--ckpt_path","/root/Github/TTS_Tokenizer/SimVQ/vq_audio_log/8k_ration_20_loss_new/epoch=49-step=308850.ckpt",
         ],
         "env": {
           "XDG_CACHE_HOME": "/mnt/nfs3/zhangjinouwen/dataset/imagenet_2012",
           "DATA_ROOT":"/mnt/nfs3/zhangjinouwen/dataset/LibriTTS",
         },
         "console": "integratedTerminal",
-        "justMyCode": false
       }
     ]
   }
