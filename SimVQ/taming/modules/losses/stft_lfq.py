@@ -18,7 +18,7 @@ class VQSTFTWithDiscriminator(nn.Module):
         super().__init__()
         assert disc_loss in ["hinge", "vanilla", "non_saturate"]
         self.codebook_weight = codebook_weight
-        self.commit_weight = commit_weight
+        self.commit_weight = 50
         self.codebook_enlarge_ratio = codebook_enlarge_ratio
         self.codebook_enlarge_steps = codebook_enlarge_steps
         self.gen_loss_weight = gen_loss_weight
