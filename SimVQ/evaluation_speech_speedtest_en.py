@@ -51,6 +51,9 @@ def instantiate_from_config(config):
     return get_obj_from_str(config["class_path"])(**config.get("init_args", dict()))
 from omegaconf import DictConfig
 
+def print_and_save(message, file):
+        print(message)  
+        file.write(message + '\n') 
 
 
 def main(args):
@@ -209,9 +212,6 @@ def main(args):
         print("****stoi",tmp_stoi)
         stoi_sumpre.append(tmp_stoi)
         
-    def print_and_save(message, file):
-        print(message)  
-        file.write(message + '\n') 
         
     with open(Path(args.ckpt_path).parent / "speedtest_en_result.txt", 'w') as f:
         print_and_save(f"UTMOS_raw: {utmos_sumgt}, {utmos_sumgt/len(paths)}", f)

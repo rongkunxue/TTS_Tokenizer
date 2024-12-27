@@ -103,12 +103,12 @@ class VQModel(L.LightningModule):
         self.quantize = SimVQ(
             dim = 512,
             codebook_size = 8192,
-            # rotation_trick = True,  
-            # codebook_transform = nn.Sequential(
-            #     nn.Linear(512, 1024),
-            #     nn.ReLU(),
-            #     nn.Linear(1024, 512)
-            # ),
+            rotation_trick = True,  
+            codebook_transform = nn.Sequential(
+                nn.Linear(512, 1024),
+                nn.ReLU(),
+                nn.Linear(1024, 512)
+            ),
             channel_first= True
         )
         self.use_ema = use_ema
