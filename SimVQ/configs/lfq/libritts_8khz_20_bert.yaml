@@ -58,7 +58,7 @@ data:
   init_args:
     batch_size: 6
     num_workers: 8
-    train_path : "/root/Github/TTS_Tokenizer/thirdPartyLibrary/SpeechTokenizer/easy_train_file_list.txt"
-    val_path : "/root/Github/TTS_Tokenizer/thirdPartyLibrary/SpeechTokenizer/easy_dev_file_list.txt"
+    train_path : "/mnt/nfs3/zhangjinouwen/dataset/rep/rep_small_hubert_train.txt"
+    val_path : "/mnt/nfs3/zhangjinouwen/dataset/rep/ep_small_hubert_eval.txt"
 
 ckpt_path: null
