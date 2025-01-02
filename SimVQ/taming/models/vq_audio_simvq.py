@@ -17,7 +17,7 @@ from taming.modules.ema import LitEma
 from einops import rearrange
 from vector_quantize_pytorch import SimVQ
 import torch.nn as nn
-
+import torch.nn.functional as F
 import torch.nn as nn
 class VideoMLP(nn.Module):
     def __init__(self, input_dim, output_dim):
@@ -229,9 +229,9 @@ class VQModel(L.LightningModule):
         distill_loss = - torch.log(torch.sigmoid(torch.nn.functional.cosine_similarity(feature[:, :n], target_feature[:, :n], axis=1))).mean()
         return distill_loss
 
-    def t_axis_distill_loss(feature, target_feature, lambda_sim=1):
+    def t_axis_distill_loss(self,feature, target_feature, lambda_sim=1):
         n = min(feature.size(1), target_feature.size(1))
-        l1_loss = torch.functional.l1_loss(feature[:, :n], target_feature[:, :n], reduction='mean')
+        l1_loss = F.l1_loss(feature[:, :n], target_feature[:, :n], reduction='mean')
         sim_loss = - torch.log(torch.sigmoid(torch.nn.functional.cosine_similarity(feature[:, :n], target_feature[:, :n], axis=-1))).mean()
         distill_loss = l1_loss + lambda_sim * sim_loss
         return distill_loss 
@@ -259,7 +259,7 @@ class VQModel(L.LightningModule):
         # opt_gen._on_after_step = lambda: self.trainer.profiler.stop("optimizer_step")
         ####################
         # optimize generator
-        loss_distill = self.d_axis_distill_loss(feature, semantic_feature)
+        loss_distill = self.t_axis_distill_loss(feature, semantic_feature)
         aeloss, log_dict_ae = self.loss(loss_distill,eloss, loss_break, x, xrec, 0, self.global_step,
                                         split="train")
         opt_gen.zero_grad()
