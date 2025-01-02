@@ -28,7 +28,7 @@
     "distill_type": "d_axis",
 
     "semantic_model_path": "/root/Github/TTS_Tokenizer/thirdPartyLibrary/SpeechTokenizer/checkpoint",
-    "semantic_model_layer": "avg",
+    "semantic_model_layer": 9,
 
     "train_files":"train_file_list.txt",
     "valid_files":"dev_file_list.txt",
