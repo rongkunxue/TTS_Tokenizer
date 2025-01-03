@@ -259,7 +259,7 @@ class VQModel(L.LightningModule):
         # opt_gen._on_after_step = lambda: self.trainer.profiler.stop("optimizer_step")
         ####################
         # optimize generator
-        loss_distill = self.t_axis_distill_loss(feature, semantic_feature)
+        loss_distill = self.d_axis_distill_loss(feature, semantic_feature)
         aeloss, log_dict_ae = self.loss(loss_distill,eloss, loss_break, x, xrec, 0, self.global_step,
                                         split="train")
         opt_gen.zero_grad()
