@@ -1,4 +1,3 @@
-lightning==2.2.5
 jsonargparse[signatures]>=4.27.7
 tensorboard
 tensorboardx
@@ -8,3 +7,6 @@ requests
 lpips
 librosa
 omegaconf
+timm
+vector_quantize_pytorch
+numpy<2.0

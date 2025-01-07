@@ -9,11 +9,14 @@ import random
 import numpy as np
 import os
 
+
+base_dir = "/mnt/nfs3/zhangjinouwen/dataset/rep"
+base_dir = "/mnt/afs/niuyazhe/data/speech_tokenizer/"
+
 if __name__ == '__main__':
-    
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', '-c', type=str, default="config/spt_base_cfg.json")
-    parser.add_argument('--rep_dir', type=str, default="/mnt/nfs3/zhangjinouwen/dataset/rep/small_hubert")
+    parser.add_argument('--rep_dir', type=str, default=f"{base_dir}/small_hubert")
     parser.add_argument('--exts', type=str, help="Audio file extensions, splitting with ','", default='wav,mp3')
     parser.add_argument('--split_seed', type=int, help="Random seed", default=0)
     parser.add_argument('--valid_set_size', type=float, default=1500)
@@ -27,7 +30,8 @@ if __name__ == '__main__':
     model = HubertModel.from_pretrained("facebook/hubert-base-ls960",cache_dir="checkpoint").eval().to(device)
     target_layer = cfg.get('semantic_model_layer')
     
-    path2 = Path("/mnt/nfs3/zhangjinouwen/dataset/LibriTTS/train-clean-100")
+    #path2 = Path("/mnt/nfs3/zhangjinouwen/dataset/LibriTTS/train-clean-100")
+    path2 = Path("/mnt/afs/chenyun/code/CosyVoice/examples/libritts/LibriTTS/train-clean-100")
 
     file_list = [
         str(file) for ext in exts 
@@ -38,8 +42,8 @@ if __name__ == '__main__':
         valid_set_size = int(len(file_list) * args.valid_set_size)
     else:
         valid_set_size = int(args.valid_set_size)
-    train_file_list = "/mnt/nfs3/zhangjinouwen/dataset/rep/rep_small_hubert_train.txt"
-    valid_file_list = "/mnt/nfs3/zhangjinouwen/dataset/rep/rep_small_hubert_eval.txt"
+    train_file_list = f"{args.rep_dir}/rep_small_hubert_train.txt"
+    valid_file_list = f"{args.rep_dir}/rep_small_hubert_eval.txt"
     segment_size = cfg.get('segment_size')
     random.seed(args.split_seed)
     random.shuffle(file_list)
