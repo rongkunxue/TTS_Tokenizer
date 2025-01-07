@@ -1,22 +1,11 @@
-seed_everything: true
 trainer:
-  accelerator: gpu
-  strategy: ddp_find_unused_parameters_true
+  distributed: False
   devices: 4
-  num_nodes: 1
   precision: 32
   max_epochs: 50
   check_val_every_n_epoch: 1
   num_sanity_val_steps: 0
   log_every_n_steps: 100
-  callbacks:
-    - class_path: lightning.pytorch.callbacks.ModelCheckpoint
-      init_args:
-        dirpath: "vq_audio_simvq/8k_ration_20_loss" # Please specify your own path
-        save_top_k: -1 # save all checkpoints
-    - class_path: lightning.pytorch.callbacks.LearningRateMonitor
-      init_args:
-        logging_interval: step
   logger:
     class_path: lightning.pytorch.loggers.TensorBoardLogger
     init_args:
@@ -25,7 +14,6 @@ trainer:
       name: "tmp"
 
 model:
-  class_path: taming.models.vq_audio_simvq.VQModel
   init_args:
     ddconfig:
       causal: true
@@ -48,17 +36,15 @@ model:
     
     sample_rate: 16000
     audio_normalize: false
-    segment: None
     learning_rate: 1e-4
     scheduler_type: "None"
     use_ema: true
 
 data:
-  class_path: taming.data.speechtokenizer.SpeechTokenizerDataModule
   init_args:
     batch_size: 6
-    num_workers: 8
-    train_path : "/mnt/nfs3/zhangjinouwen/dataset/rep/rep_small_hubert_train.txt"
-    val_path : "/mnt/nfs3/zhangjinouwen/dataset/rep/ep_small_hubert_eval.txt"
+    num_workers: 4
+    train_path : "/mnt/afs/niuyazhe/data/speech_tokenizer/small_hubert/rep_small_hubert_eval.txt"
+    val_path : "/mnt/afs/niuyazhe/data/speech_tokenizer/small_hubert/rep_small_hubert_eval.txt"
 
 ckpt_path: null

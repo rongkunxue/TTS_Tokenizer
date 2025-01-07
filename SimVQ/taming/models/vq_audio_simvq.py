@@ -1,6 +1,6 @@
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
-import lightning as L
 import math
 from main import instantiate_from_config
 from contextlib import contextmanager
@@ -16,9 +16,8 @@ from collections import OrderedDict
 from taming.modules.ema import LitEma
 from einops import rearrange
 from vector_quantize_pytorch import SimVQ
-import torch.nn as nn
 
-import torch.nn as nn
+
 class VideoMLP(nn.Module):
     def __init__(self, input_dim, output_dim):
         super(VideoMLP, self).__init__()
@@ -48,29 +47,33 @@ class VideoConv(nn.Module):
         x = x.transpose(1, 2) 
         return x
 
-class VQModel(L.LightningModule):
-    def __init__(self,
-                 ddconfig,
-                 lossconfig,
-                 ### Quantize Related
-                 quantconfig,
-                 sample_rate,
-                 target_bandwidths,
-                 audio_normalize,
-                 segment,
-                 ckpt_path=None,
-                 ignore_keys=[],
-                 colorize_nlabels=None,
-                 monitor=None,
-                 learning_rate=None,
-                 ### scheduler config
-                 warmup_epochs=1.0, #warmup epochs
-                 scheduler_type = "linear-warmup_cosine-decay",
-                 min_learning_rate = 0,
-                 use_ema = False,
-                 stage = None,
-                 ):
+
+class VQModel(nn.Module):
+    def __init__(
+        self,
+        ddconfig,
+        lossconfig,
+        step_per_epoch: int,
+        max_epochs: int,
+        # Audio related
+        sample_rate,
+        audio_normalize,
+        # Model loading
+        ckpt_path=None,
+        ignore_keys=[],
+        colorize_nlabels=None,
+        monitor=None,
+        # Training related
+        learning_rate=None,
+        warmup_epochs=1.0,
+        scheduler_type="linear-warmup_cosine-decay",
+        min_learning_rate=0,
+        use_ema=False,
+        stage=None,
+    ):
         super().__init__()
+        self.step_per_epoch = step_per_epoch
+        self.max_epochs = max_epochs
         self.encoder = Encoder(**ddconfig)
         self.decoder = Decoder(**ddconfig)
         self.backbone = Backbone(
@@ -123,12 +126,16 @@ class VQModel(L.LightningModule):
 
         if self.use_ema and stage is None: #no need to construct ema when training transformer
             self.model_ema = LitEma(self)
-        self.learning_rate = learning_rate
+        self.learning_rate = float(learning_rate)
         self.scheduler_type = scheduler_type
         self.warmup_epochs = warmup_epochs
-        self.min_learning_rate = min_learning_rate
         self.automatic_optimization = False
         self.strict_loading = False
+
+        opt = self._configure_optimizers()
+        self.optimizers = [o['optimizer'] for o in opt]
+        self.lr_schedulers = [o.get('lr_scheduler', None) for o in opt]
+        self.global_step = 0
 
     @contextmanager
     def ema_scope(self, context=None):
@@ -146,9 +153,10 @@ class VQModel(L.LightningModule):
                     print(f"{context}: Restored training weights")
 
     def state_dict(self, *args, destination=None, prefix='', keep_vars=False):
-        '''
-        save the state_dict and filter out the 
-        '''
+        """
+        Overview:
+            Save the state_dict and filter out the unneeded keys.
+        """
         return {k: v for k, v in super().state_dict(*args, destination, prefix, keep_vars).items() if ("inception_model" not in k and "lpips_vgg" not in k and "lpips_alex" not in k)}
         
     def init_from_ckpt(self, path, ignore_keys=list(), stage=None):
@@ -222,7 +230,7 @@ class VQModel(L.LightningModule):
         # feature = rearrange(feature, 'b t d -> b d t')
         feature = self.conv_transpose(quant[0])
         feature = rearrange(feature, 'b d t -> b t d')
-        return dec, diff, loss_break,feature
+        return dec, diff, loss_break, feature
     
     def d_axis_distill_loss(self,feature, target_feature):
         n = min(feature.size(1), target_feature.size(1))
@@ -239,51 +247,52 @@ class VQModel(L.LightningModule):
         #     x = batch["waveform"].to(memory_format=torch.contiguous_format)
         #     return x.float()
 
-    # fix mulitple optimizer bug
-    # refer to https://lightning.ai/docs/pytorch/stable/model/manual_optimization.html
     def training_step(self, batch, batch_idx):
-        x,semantic_feature=batch[0],batch[1]
+        x, semantic_feature = batch
         x = x.unsqueeze(1)
-        xrec, eloss, loss_break,feature = self(x)
+        xrec, eloss, loss_break, feature = self(x)
 
-        opt_gen, opt_disc = self.optimizers()
-        # scheduler_gen, scheduler_disc = self.lr_schedulers()
-        if self.scheduler_type != "None":
-            scheduler_gen,scheduler_disc = self.lr_schedulers()
-        ####################
-        # fix global step bug
-        # refer to https://github.com/Lightning-AI/pytorch-lightning/issues/17958
-        opt_disc._on_before_step = lambda: self.trainer.profiler.start("optimizer_step")
-        opt_disc._on_after_step = lambda: self.trainer.profiler.stop("optimizer_step")
-        # opt_gen._on_before_step = lambda: self.trainer.profiler.start("optimizer_step")
-        # opt_gen._on_after_step = lambda: self.trainer.profiler.stop("optimizer_step")
-        ####################
+        opt_gen, opt_disc = self.optimizers
+        scheduler_gen, scheduler_disc = self.lr_schedulers
         # optimize generator
         loss_distill = self.d_axis_distill_loss(feature, semantic_feature)
-        aeloss, log_dict_ae = self.loss(loss_distill,eloss, loss_break, x, xrec, 0, self.global_step,
-                                        split="train")
+        aeloss, log_dict_ae = self.loss(
+            loss_distill,
+            eloss,
+            loss_break,
+            x,
+            xrec,
+            0,
+            self.global_step,
+            split="train"
+        )
         opt_gen.zero_grad()
-        self.manual_backward(aeloss)
+        aeloss.backward()
         opt_gen.step()
-        # scheduler_gen.step()
-        if self.scheduler_type != "None":
+        if scheduler_gen is not None:
             scheduler_gen.step()
         log_dict_ae["train/codebook_util"] = torch.tensor(sum(self.codebook_count) / len(self.codebook_count))
         
         # optimize discriminator
-        discloss, log_dict_disc = self.loss(loss_distill,eloss, loss_break, x, xrec, 1, self.global_step,
-                                            split="train")
+        discloss, log_dict_disc = self.loss(
+            loss_distill,
+            eloss,
+            loss_break,
+            x,
+            xrec,
+            1,
+            self.global_step,
+            split="train"
+        )
         opt_disc.zero_grad()
-        self.manual_backward(discloss)
+        discloss.backward()
         opt_disc.step()
-        # scheduler_disc.step()
-        if self.scheduler_type != "None":
+        if scheduler_disc is not None:
             scheduler_disc.step()
-        if torch.distributed.get_rank() == 0:
-            print(log_dict_ae, log_dict_disc)
         
-        self.log_dict(log_dict_disc, prog_bar=False, logger=True, on_step=True, on_epoch=True)
-        self.log_dict(log_dict_ae, prog_bar=False, logger=True, on_step=True, on_epoch=True)
+        self.global_step += 1
+        log_dict_ae.update(log_dict_disc)
+        return log_dict_ae
     
     def on_train_batch_end(self, *args, **kwargs):
         if self.use_ema:
@@ -303,29 +312,42 @@ class VQModel(L.LightningModule):
             log_dict = self._validation_step(batch, batch_idx)
 
     def _validation_step(self, batch, batch_idx, suffix=""):
-        x,semantic_feature=batch[0],batch[1]
+        x, semantic_feature = batch
         x = x.unsqueeze(1)
         quant, eloss, indices, loss_break = self.encode(x)
         x_rec = self.decode(quant)
         feature = rearrange(quant[0], 'b d t -> b t d')
-        feature = self.transform(feature)
+        #feature = self.transform(feature)
         loss_distill = self.d_axis_distill_loss(feature, semantic_feature)
-        aeloss, log_dict_ae = self.loss(loss_distill,eloss, loss_break, x, x_rec, 0, self.global_step,
-                                        split="val"+ suffix)
+        aeloss, log_dict_ae = self.loss(
+            loss_distill,
+            eloss, 
+            loss_break, 
+            x, 
+            x_rec, 
+            0, 
+            self.global_step,
+            split="val"+ suffix
+        )
 
-        discloss, log_dict_disc = self.loss(loss_distill,eloss, loss_break, x, x_rec, 1, self.global_step,
-                                            split="val" + suffix)
+        discloss, log_dict_disc = self.loss(
+            loss_distill,
+            eloss, 
+            loss_break, 
+            x, 
+            x_rec, 
+            1, 
+            self.global_step,
+            split="val" + suffix
+        )
         
         for ind in indices.unique():
             self.codebook_count[ind] = 1
         log_dict_ae[f"val{suffix}/codebook_util"] = torch.tensor(sum(self.codebook_count) / len(self.codebook_count))
-    
-        self.log_dict(log_dict_ae, prog_bar=False, logger=True, on_step=True, on_epoch=True)
-        self.log_dict(log_dict_disc, prog_bar=False, logger=True, on_step=True, on_epoch=True)
+        log_dict_ae.update(log_dict_disc)
+        return log_dict_ae
 
-        return self.log_dict
-
-    def configure_optimizers(self):
+    def _configure_optimizers(self):
         lr = self.learning_rate
         opt_gen = torch.optim.Adam(list(self.encoder.parameters())+
                                   list(self.decoder.parameters())+
@@ -340,11 +362,8 @@ class VQModel(L.LightningModule):
                                      list(self.loss.multiresddisc.parameters())+
                                      list(self.loss.dac.parameters()),
                                     lr=lr, betas=(0.5, 0.9))
-        if self.trainer.is_global_zero:
-            print("step_per_epoch: {}".format(len(self.trainer.datamodule.train_dataloader()) // self.trainer.world_size))
-        step_per_epoch  = len(self.trainer.datamodule.train_dataloader()) // self.trainer.world_size
-        warmup_steps = step_per_epoch * self.warmup_epochs
-        training_steps = step_per_epoch * self.trainer.max_epochs
+        warmup_steps = self.step_per_epoch * self.warmup_epochs
+        training_steps = self.step_per_epoch * self.max_epochs
 
         if self.scheduler_type == "None":
             return ({"optimizer": opt_gen}, {"optimizer": opt_disc})

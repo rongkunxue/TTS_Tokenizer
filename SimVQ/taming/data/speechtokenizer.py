@@ -32,8 +32,8 @@ def pad_collate_fn(data):
 
 
 def create_dataloader(args):
-    train_dataset = AudioDataset(args["train_dataset_path"], 48000, False)
-    val_dataset = AudioDataset(args["val_dataset_path"], 48000, False)
+    train_dataset = AudioDataset(args["train_path"], 48000, False)
+    val_dataset = AudioDataset(args["val_path"], 48000, False)
     train_loader = DataLoader(
         train_dataset,
         batch_size=args["batch_size"],
@@ -89,8 +89,8 @@ if __name__ == "__main__":
     args = {
         "batch_size": 6,
         "num_workers": 4,
-        "train_dataset_path": "/mnt/afs/niuyazhe/data/speech_tokenizer/small_hubert/rep_small_hubert_eval.txt",
-        "val_dataset_path": "/mnt/afs/niuyazhe/data/speech_tokenizer/small_hubert/rep_small_hubert_eval.txt",
+        "train_path": "/mnt/afs/niuyazhe/data/speech_tokenizer/small_hubert/rep_small_hubert_eval.txt",
+        "val_path": "/mnt/afs/niuyazhe/data/speech_tokenizer/small_hubert/rep_small_hubert_eval.txt",
     }
     train_loader, val_loader = create_dataloader(args)
     for batch in train_loader:
