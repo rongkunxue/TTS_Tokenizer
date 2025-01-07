@@ -4,57 +4,54 @@ import torchaudio
 import random
 import torch
 import numpy as np
-import lightning as L
 
-class SpeechTokenizerDataModule(L.LightningDataModule):
-    def __init__(self, batch_size, num_workers,train_path,val_path):
-        super(SpeechTokenizerDataModule).__init__()
-        self.batch_size = batch_size
-        self.num_workers = num_workers
-        self.train_dataset_path = train_path 
-        self.val_dataset_path = val_path    
-        self.prepare_data_per_node = True
-        self._log_hyperparams=False
-        self.allow_zero_length_dataloader_with_multiple_devices = False
 
-    def pad_collate_fn(self,data):
-        # return pad_sequence(data, batch_first=True)
-        # return pad_sequence(*data)
-        is_one_data = not isinstance(data[0], tuple)
-        outputs = []
-        if is_one_data:
-            for datum in data:
-                if isinstance(datum, torch.Tensor):
-                    output = datum.unsqueeze(0)
-                else:
-                    output = torch.tensor([datum])
-                outputs.append(output)
-            return tuple(outputs)        
-        for datum in zip(*data):
-            if isinstance(datum[0], torch.Tensor):
-                output = pad_sequence(datum, batch_first=True)
+def pad_collate_fn(data):
+    # PyTorch Lightning DataModule arguments
+    #self.prepare_data_per_node = True
+    #self._log_hyperparams=False
+    #self.allow_zero_length_dataloader_with_multiple_devices = False
+
+    is_one_data = not isinstance(data[0], tuple)
+    outputs = []
+    if is_one_data:
+        for datum in data:
+            if isinstance(datum, torch.Tensor):
+                output = datum.unsqueeze(0)
             else:
-                output = torch.tensor(list(datum))
+                output = torch.tensor([datum])
             outputs.append(output)
         return tuple(outputs)
-    
+    for datum in zip(*data):
+        if isinstance(datum[0], torch.Tensor):
+            output = pad_sequence(datum, batch_first=True)
+        else:
+            output = torch.tensor(list(datum))
+        outputs.append(output)
+    return tuple(outputs)
 
-    def prepare_data(self):
-        pass
 
-    def setup(self, stage=None):
-        if stage == "fit" or stage is None:
-            self.train = audioDataset(self.train_dataset_path,48000,False)
-        if stage == "test" or stage is None:
-            self.test = audioDataset(self.train_dataset_path,48000,False)
+def create_dataloader(args):
+    train_dataset = AudioDataset(args["train_dataset_path"], 48000, False)
+    val_dataset = AudioDataset(args["val_dataset_path"], 48000, False)
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=args["batch_size"],
+        num_workers=args["num_workers"],
+        shuffle=True,
+        collate_fn=pad_collate_fn
+    )
+    val_loader = DataLoader(
+        val_dataset,
+        batch_size=args["batch_size"],
+        num_workers=args["num_workers"],
+        shuffle=False,
+        collate_fn=pad_collate_fn
+    )
+    return train_loader, val_loader
 
-    def train_dataloader(self):
-        return DataLoader(self.train, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=True,collate_fn=self.pad_collate_fn)
 
-    def test_dataloader(self):
-        return DataLoader(self.test, batch_size=self.batch_size, num_workers=self.num_workers,shuffle=False, collate_fn=self.pad_collate_fn)
-
-class audioDataset(Dataset):
+class AudioDataset(Dataset):
     def __init__(self,
                  file_path,
                  segment_size,
@@ -65,10 +62,10 @@ class audioDataset(Dataset):
         self.segment_size = segment_size
         self.sample_rate = 16000
         self.downsample_rate = 320
-        
+
     def __len__(self):
         return len(self.file_list)
-    
+
     def __getitem__(self, index):
         file = self.file_list[index].strip()
         audio_file, feature_file = file.split('\t')
@@ -86,12 +83,18 @@ class audioDataset(Dataset):
         else:
             audio = torch.nn.functional.pad(audio, (0, self.segment_size - audio.size(-1)), 'constant')
         return audio, feature
-    
+
 
 if __name__ == "__main__":
-    data_module = SpeechTokenizerDataModule(batch_size=6, num_workers=4,train_path="/root/Github/TTS_Tokenizer/thirdPartyLibrary/SpeechTokenizer/train_file_list.txt",val_path="/root/Github/TTS_Tokenizer/thirdPartyLibrary/SpeechTokenizer/dev_file_list.txt")
-    data_module.setup("test")
-    train_loader = data_module.test_dataloader()
+    args = {
+        "batch_size": 6,
+        "num_workers": 4,
+        "train_dataset_path": "/mnt/afs/niuyazhe/data/speech_tokenizer/small_hubert/rep_small_hubert_eval.txt",
+        "val_dataset_path": "/mnt/afs/niuyazhe/data/speech_tokenizer/small_hubert/rep_small_hubert_eval.txt",
+    }
+    train_loader, val_loader = create_dataloader(args)
     for batch in train_loader:
-        a=1
+        audio, feature = batch
+        print(audio.shape)
+        print(feature.shape)
         break
