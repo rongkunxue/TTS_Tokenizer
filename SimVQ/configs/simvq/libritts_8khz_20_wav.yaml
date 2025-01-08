@@ -27,6 +27,8 @@ trainer:
 model:
   class_path: taming.models.vq_audio_simvq.VQModel
   init_args:
+    distrillmodel: wav2vec2
+
     ddconfig:
       causal: true
       dimension: 512
@@ -62,3 +64,4 @@ data:
     val_path : "/mnt/nfs3/zhangjinouwen/dataset/rep/rep_small_wav_eval.txt"
 
 ckpt_path: null
+

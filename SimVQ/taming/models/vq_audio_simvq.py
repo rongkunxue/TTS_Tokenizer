@@ -68,6 +68,7 @@ class VQModel(nn.Module):
         warmup_epochs=1.0,
         scheduler_type="linear-warmup_cosine-decay",
         min_learning_rate=0,
+        distrillmodel=None,
         use_ema=False,
         stage=None,
     ):
@@ -89,13 +90,27 @@ class VQModel(nn.Module):
             hop_length=800,
             padding="same"
         )
-        self.conv_transpose = nn.ConvTranspose1d(
-            in_channels=512,
-            out_channels=768,
-            kernel_size=34,
-            stride=2,
-            padding=1,
-        )
+        if distrillmodel is not None:
+            if distrillmodel == "hubert":
+                self.conv_transpose = nn.ConvTranspose1d(
+                    in_channels=512,
+                    out_channels=768,
+                    kernel_size=34,
+                    stride=2,
+                    padding=1,
+                )
+            elif distrillmodel == "wav2vec2":
+                self.conv_transpose = nn.ConvTranspose1d(
+                    in_channels=512,
+                    out_channels=1024,
+                    kernel_size=34,
+                    stride=2,
+                    padding=1,
+                )
+            else:
+                raise NotImplementedError()
+        else:
+            self.conv_transpose = nn.Identity()
         # self.VideoMLP=VideoMLP(10,75)
         # self.VideoConv=VideoConv(75)
         self.loss = instantiate_from_config(lossconfig)
@@ -308,16 +323,19 @@ class VQModel(nn.Module):
         if self.use_ema:
             with self.ema_scope():
                 log_dict_ema = self._validation_step(batch, batch_idx, suffix="_ema")
+                return log_dict_ema
         else:
             log_dict = self._validation_step(batch, batch_idx)
+            return log_dict
+        
 
     def _validation_step(self, batch, batch_idx, suffix=""):
         x, semantic_feature = batch
         x = x.unsqueeze(1)
         quant, eloss, indices, loss_break = self.encode(x)
         x_rec = self.decode(quant)
-        feature = rearrange(quant[0], 'b d t -> b t d')
-        #feature = self.transform(feature)
+        feature = self.conv_transpose(quant[0])
+        feature = rearrange(feature, 'b d t -> b t d')
         loss_distill = self.d_axis_distill_loss(feature, semantic_feature)
         aeloss, log_dict_ae = self.loss(
             loss_distill,

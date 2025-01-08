@@ -24,7 +24,7 @@ torch.backends.cudnn.benchmark = False
 
 def parse_args():
     config_parser = parser = argparse.ArgumentParser(description='Training Config', add_help=False)
-    parser.add_argument('-c', '--config', default='', type=str, metavar='FILE',
+    parser.add_argument('-c', '--config', default='/root/Github/TTS_Tokenizer/SimVQ/configs/simvq/libritts_8khz_20_wav.yaml', type=str, metavar='FILE',
                     help='YAML config file specifying default arguments')
     
     parser = argparse.ArgumentParser(description='Audio VQ Training')
@@ -61,6 +61,7 @@ def main():
     setup_default_logging()
     args = parse_args()
     seed_everything(args.seed)
+    wandb.init(project="audio-vq", name="text", config=args)
     
     # Initialize distributed training first
     if 'WORLD_SIZE' in os.environ:
@@ -109,7 +110,8 @@ def main():
         audio_normalize=args.model['init_args']['audio_normalize'],
         learning_rate=args.model['init_args']['learning_rate'],
         scheduler_type=args.model['init_args']['scheduler_type'],
-        use_ema=args.model['init_args']['use_ema']
+        use_ema=args.model['init_args']['use_ema'],
+        distrillmodel=args.model['init_args']['distrillmodel']
     )
     
     # Move model to GPU
@@ -153,7 +155,7 @@ def main():
         
         # Save checkpoint
         if saver is not None and (epoch + 1) % args.save_freq == 0:
-            save_metric = eval_metrics['loss'] if eval_loader is not None else train_metrics['loss']
+            save_metric = eval_metrics['val_ema/total_loss'] if eval_loader is not None else train_metrics['train/total_loss']
             saver.save_checkpoint(epoch, metric=save_metric)
 
 
@@ -237,7 +239,20 @@ def train_one_epoch(epoch, model, loader, args, saver=None):
 def validate(model, loader, args):
     model.eval()
     model.on_validation_epoch_start()
-    losses_m = AverageMeter()
+    meters = {
+        'val_ema/total_loss': AverageMeter(),
+        'val_ema/commit_loss': AverageMeter(),
+        'val_ema/reconstruct_loss': AverageMeter(),
+        'val_ema/multi_period_loss': AverageMeter(),
+        'val_ema/multi_res_loss': AverageMeter(),
+        'val_ema/feature_matching_mp': AverageMeter(),
+        'val_ema/feature_matching_mrd': AverageMeter(),
+        'val_ema/loss_dac_1': AverageMeter(),
+        'val_ema/loss_dac_2': AverageMeter(),
+        'val_ema/loss_distill': AverageMeter(),
+        'val_ema/codebook_util': AverageMeter(),
+        'val_ema/dac': AverageMeter()
+    }
     
     pbar = tqdm(enumerate(loader), total=len(loader),
                 desc='Validation',
@@ -251,26 +266,25 @@ def validate(model, loader, args):
         with torch.no_grad():
             log_dict = model.validation_step(batch, batch_idx)
         
-        # Update metrics
-        if args.distributed:
-            reduced_loss = reduce_tensor(log_dict['loss'].data, args.world_size)
-        else:
-            reduced_loss = log_dict['loss'].data
-            
-        losses_m.update(reduced_loss.item(), batch[0].size(0))
+        batch_size = batch[0].size(0)
+        for key, meter in meters.items():
+            if key in log_dict:
+                meters[key].update(log_dict[key].item(), batch_size)
         
-        # Update progress bar
         pbar.set_postfix({
-            'loss': f'{losses_m.val:.4f} ({losses_m.avg:.4f})'
+            'loss': f'{meters["val_ema/total_loss"].val:.4f} ({meters["val_ema/total_loss"].avg:.4f})',
         })
-    
-    # Log validation metrics
-    if args.rank == 0:
-        wandb.log({
-            'val_loss': losses_m.avg,
-        })
+
+        if batch_idx % 100 == 0 and args.rank == 0:
+            wandb_dict = {}
+            # Add all metrics to wandb dict
+            for key, meter in meters.items():
+                wandb_dict[f'{key}'] = meter.val
+                wandb_dict[f'{key}_avg'] = meter.avg
+            
+            wandb.log(wandb_dict)
         
-    return OrderedDict([('loss', losses_m.avg)])
+    return OrderedDict([(key, meter.avg) for key, meter in meters.items()])
 
 
 if __name__ == '__main__':
