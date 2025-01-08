@@ -24,7 +24,7 @@ torch.backends.cudnn.benchmark = False
 
 def parse_args():
     config_parser = parser = argparse.ArgumentParser(description='Training Config', add_help=False)
-    parser.add_argument('-c', '--config', default='/root/Github/TTS_Tokenizer/SimVQ/configs/simvq/libritts_8khz_20_wav.yaml', type=str, metavar='FILE',
+    parser.add_argument('-c', '--config', default='/root/Github/TTS_Tokenizer/SimVQ/configs/simvq/libritts_8khz_20_bert.yaml', type=str, metavar='FILE',
                     help='YAML config file specifying default arguments')
     
     parser = argparse.ArgumentParser(description='Audio VQ Training')

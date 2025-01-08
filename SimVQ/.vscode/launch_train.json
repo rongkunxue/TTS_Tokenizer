@@ -1,0 +1,22 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Python: Debug main.py",
+        "type": "python",
+        "request": "launch",
+        "program": "${workspaceFolder}/main.py",
+        "args": [
+          "fit",
+          "--config",
+          "/root/Github/TTS_Tokenizer/SimVQ/configs/lfq/libritts_8khz_20_bert.yaml"
+        ],
+        "env": {
+          "XDG_CACHE_HOME": "/mnt/nfs3/zhangjinouwen/dataset/imagenet_2012",
+          "DATA_ROOT":"/mnt/nfs3/zhangjinouwen/dataset/LibriTTS",
+        },
+        "console": "integratedTerminal",
+        "justMyCode": false
+      }
+    ]
+  }
