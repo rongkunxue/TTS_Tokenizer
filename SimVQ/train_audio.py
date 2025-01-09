@@ -61,7 +61,6 @@ def main():
     setup_default_logging()
     args = parse_args()
     seed_everything(args.seed)
-    wandb.init(project="audio-vq", name="text", config=args)
     
     # Initialize distributed training first
     if 'WORLD_SIZE' in os.environ:

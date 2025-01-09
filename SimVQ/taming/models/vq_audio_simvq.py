@@ -2,9 +2,12 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import math
-from main import instantiate_from_config
 from contextlib import contextmanager
+from collections import OrderedDict
+from einops import rearrange
+from vector_quantize_pytorch import SimVQ
 
+from utils import instantiate_from_config
 from taming.modules.diffusionmodules.seanet import SEANetEncoder as Encoder
 from taming.modules.diffusionmodules.seanet import SEANetDecoder as Decoder
 from taming.modules.diffusionmodules.fourierhead import ISTFTHead as FourierHead
@@ -12,10 +15,7 @@ from taming.modules.diffusionmodules.vocosbackbone import VocosBackbone as Backb
 
 from taming.modules.scheduler.lr_scheduler import Scheduler_LinearWarmup, Scheduler_LinearWarmup_CosineDecay
 from taming.modules.util import requires_grad
-from collections import OrderedDict
 from taming.modules.ema import LitEma
-from einops import rearrange
-from vector_quantize_pytorch import SimVQ
 
 
 class VideoMLP(nn.Module):

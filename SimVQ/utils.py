@@ -1,6 +1,7 @@
 from typing import Optional
 import os
 import random
+import importlib
 import numpy as np
 import torch
 
@@ -49,3 +50,17 @@ def to_device(batch, device):
         return type(batch)(to_device(x, device) for x in batch)
     else:
         return batch
+
+
+def get_obj_from_str(string: str, reload: bool = False):
+    module, cls = string.rsplit(".", 1)
+    if reload:
+        module_imp = importlib.import_module(module)
+        importlib.reload(module_imp)
+    return getattr(importlib.import_module(module, package=None), cls)
+
+
+def instantiate_from_config(config: dict):
+    if not "target" in config:
+        raise KeyError("Expected key `target` to instantiate.")
+    return get_obj_from_str(config["target"])(**config.get("params", dict()))
