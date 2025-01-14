@@ -11,3 +11,4 @@ events*
 *.png
 thirdPartyLibrary/hifi-gan
 checkpoint
+wandb
