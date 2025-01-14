@@ -242,10 +242,16 @@ class VQModel(L.LightningModule):
     # fix mulitple optimizer bug
     # refer to https://lightning.ai/docs/pytorch/stable/model/manual_optimization.html
     def training_step(self, batch, batch_idx):
-        x,semantic_feature=batch[0],batch[1]
-        x = x.unsqueeze(1)
-        xrec, eloss, loss_break,feature = self(x)
+        _,mel,x_16k,feature=batch[0],batch[1],batch[2],batch[3] 
+        x_16k=x_16k.unsqueeze(1)
 
+        with torch.no_grad():
+            ouput = self.hubert_model(feature, output_hidden_states=True)
+            hidden_states = torch.stack(ouput.hidden_states, dim=0) 
+            semantic_feature = torch.mean(hidden_states, dim=0)
+
+        x=x_16k
+        xrec, eloss, loss_break,feature = self(x)
         opt_gen, opt_disc = self.optimizers()
         # scheduler_gen, scheduler_disc = self.lr_schedulers()
         if self.scheduler_type != "None":
