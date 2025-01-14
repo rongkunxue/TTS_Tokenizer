@@ -30,7 +30,7 @@ model:
     ddconfig:
       causal: true
       dimension: 512
-      ratios: [8,5,5,4]
+      ratios: [8,8,4,4]
     
     lossconfig:
       target: taming.modules.losses.stft_simvq.VQSTFTWithDiscriminator
@@ -40,13 +40,13 @@ model:
         disc_start: 0 # from 0 epoch
         codebook_enlarge_ratio: 0
         codebook_enlarge_steps: 2000
-        sample_rate: 16000
+        sample_rate: 24000
         commit_weight: 1000.0
         gen_loss_weight: 1.0
         mel_loss_coeff: 45.0
         mrd_loss_coeff: 1.0
     
-    sample_rate: 16000
+    sample_rate: 24000
     audio_normalize: false
     segment: None
     learning_rate: 1e-4

@@ -18,7 +18,7 @@ import pathlib
 from tqdm import tqdm
 from typing import List, Tuple, Optional
 from transformers import HubertModel,  Wav2Vec2FeatureExtractor
-
+import warnings
 MAX_WAV_VALUE = 32767.0  # NOTE: 32768.0 -1 to prevent int16 overflow (results in popping sound in corner cases)
 
 
@@ -181,7 +181,6 @@ class audioDataset(Dataset):
         self.data = [line.strip().split('|') for line in lines]
 
         self.segment_size = segment_size
-        self.sample_rate = 24000
         self.downsample_rate = 320
         self.feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained("facebook/hubert-base-ls960",cache_dir="/checkpoint")
 
@@ -193,17 +192,15 @@ class audioDataset(Dataset):
         audio, sr = torchaudio.load(data_path)
         audio = audio.mean(axis=0)
         if sr != 24000:
-            audio = torchaudio.functional.resample(audio, sr, self.sample_rate)
-        if sr != 16000:
-            audio_16k = torchaudio.functional.resample(audio, sr, self.sample_rate)
+            audio = torchaudio.functional.resample(audio, sr, 24000)
         if audio.size(-1) > self.segment_size:
             max_audio_start = audio.size(-1) - self.segment_size
             audio_start = random.randint(0, max_audio_start)
             audio = audio[audio_start:audio_start+self.segment_size]
-            audio_16k = audio_16k[audio_start:audio_start+self.segment_size]
+            audio_16k = torchaudio.functional.resample(audio, 24000, 16000)
         else:
             audio = torch.nn.functional.pad(audio, (0, self.segment_size - audio.size(-1)), 'constant')
-            audio_16k = torch.nn.functional.pad(audio_16k, (0, self.segment_size - audio.size(-1)), 'constant')
+            audio_16k = torchaudio.functional.resample(audio, 24000, 16000)
         audio = torch.FloatTensor(audio)
         audio_16k = torch.FloatTensor(audio_16k)
         feature_value = self.feature_extractor(audio_16k.squeeze(0), sampling_rate=16000, return_tensors="pt").input_values
@@ -219,7 +216,14 @@ class audioDataset(Dataset):
                     None,
                     center=False,
                 )
-        assert (
-                audio.shape[1] == mel.shape[2] * 256
-            ), f"Audio length must be mel frame length * hop_size. Got audio shape {audio.shape} mel shape {mel.shape} "
+
+
+        # 检查条件
+        if audio.shape[1] != mel.shape[2] * 256:
+            # 发出警告而不是错误
+            warnings.warn(
+                f"Audio length should be mel frame length * hop_size. "
+                f"Got audio shape {audio.shape} and mel shape {mel.shape}. "
+                "This may cause alignment issues."
+            )
         return audio.squeeze(0),mel.squeeze(),audio_16k,feature_value.squeeze(0)

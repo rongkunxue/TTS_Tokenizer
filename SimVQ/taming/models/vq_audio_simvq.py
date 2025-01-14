@@ -4,7 +4,7 @@ import lightning as L
 import math
 from main import instantiate_from_config
 from contextlib import contextmanager
-
+from transformers import HubertModel,  Wav2Vec2FeatureExtractor
 from taming.modules.diffusionmodules.seanet import SEANetEncoder as Encoder
 from taming.modules.diffusionmodules.seanet import SEANetDecoder as Decoder
 from taming.modules.diffusionmodules.fourierhead import ISTFTHead as FourierHead
@@ -89,7 +89,7 @@ class VQModel(L.LightningModule):
         self.conv_transpose = nn.ConvTranspose1d(
             in_channels=512,
             out_channels=768,
-            kernel_size=34,
+            kernel_size=33,
             stride=2,
             padding=1,
         )
@@ -98,8 +98,7 @@ class VQModel(L.LightningModule):
         self.loss = instantiate_from_config(lossconfig)
         
         self.audio_normalize = audio_normalize
-        
-        # self.quantize = instantiate_from_config(quantconfig)
+
         self.quantize = SimVQ(
             dim = 512,
             codebook_size = 8192,
@@ -111,6 +110,10 @@ class VQModel(L.LightningModule):
             ),
             channel_first= True
         )
+        self.hubert_model=HubertModel.from_pretrained("facebook/hubert-base-ls960",cache_dir="checkpoint").eval()
+
+
+
         self.use_ema = use_ema
         self.stage = stage
         if ckpt_path is not None:
