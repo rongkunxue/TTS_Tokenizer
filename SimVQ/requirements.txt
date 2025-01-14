@@ -34,4 +34,4 @@ lion_pytorch
 accelerate
 transformers
 beartype
-#fairseq==0.12.2
+#fairseq

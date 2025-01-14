@@ -9,3 +9,4 @@ vq_audio_*
 core*
 events*
 *.png
+thirdPartyLibrary/hifi-gan
