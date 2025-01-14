@@ -160,9 +160,9 @@ class SpeechTokenizerDataModule(L.LightningDataModule):
 
     def setup(self, stage=None):
         if stage == "fit" or stage is None:
-            self.train = audioDataset(self.train_metalst,self.segement_size,False)
+            self.train = audioDataset(self.train_metalst,self.segement_size)
         if stage == "test" or stage is None:
-            self.test = audioDataset(self.val_metalst,self.segement_size,True)
+            self.test = audioDataset(self.val_metalst,self.segement_size)
 
     def train_dataloader(self):
         return DataLoader(self.train, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=True,collate_fn=self.pad_collate_fn)
@@ -170,11 +170,15 @@ class SpeechTokenizerDataModule(L.LightningDataModule):
     def test_dataloader(self):
         return DataLoader(self.test, batch_size=self.batch_size, num_workers=self.num_workers,shuffle=False, collate_fn=self.pad_collate_fn)
 
+    def val_dataloader(self):
+        return DataLoader(self.val, batch_size=self.batch_size, num_workers=self.num_workers,shuffle=False, collate_fn=self.pad_collate_fn)
+    
 class audioDataset(Dataset):
     def __init__(self,
                  file_path,
-                 segment_size,
-                 if_val):
+                 segment_size=None,
+                 if_val=False,
+                 if_test=False):
         super().__init__()
         f = open(file_path)
         lines = f.readlines()
@@ -183,6 +187,9 @@ class audioDataset(Dataset):
         self.segment_size = segment_size
         self.downsample_rate = 320
         self.feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained("facebook/hubert-base-ls960",cache_dir="/checkpoint")
+
+        self.if_test=if_test
+        self.if_val=if_val
 
     def __len__(self):
         return len(self.data)
@@ -193,37 +200,41 @@ class audioDataset(Dataset):
         audio = audio.mean(axis=0)
         if sr != 24000:
             audio = torchaudio.functional.resample(audio, sr, 24000)
-        if audio.size(-1) > self.segment_size:
-            max_audio_start = audio.size(-1) - self.segment_size
-            audio_start = random.randint(0, max_audio_start)
-            audio = audio[audio_start:audio_start+self.segment_size]
-            audio_16k = torchaudio.functional.resample(audio, 24000, 16000)
+        if not self.if_test:
+            if audio.size(-1) > self.segment_size:
+                max_audio_start = audio.size(-1) - self.segment_size
+                audio_start = random.randint(0, max_audio_start)
+                audio = audio[audio_start:audio_start+self.segment_size]
+                audio_16k = torchaudio.functional.resample(audio, 24000, 16000)
+            else:
+                audio = torch.nn.functional.pad(audio, (0, self.segment_size - audio.size(-1)), 'constant')
+                audio_16k = torchaudio.functional.resample(audio, 24000, 16000)
+            audio = torch.FloatTensor(audio)
+            audio_16k = torch.FloatTensor(audio_16k)
+            feature_value = self.feature_extractor(audio_16k.squeeze(0), sampling_rate=16000, return_tensors="pt").input_values
+            audio = audio.unsqueeze(0)  # [B(1), self.segment_size]
+            mel = mel_spectrogram(
+                        audio,
+                        1024,
+                        100,
+                        24000,
+                        256,
+                        1024,
+                        0,
+                        None,
+                        center=False,
+                    )
+            return audio.squeeze(0),mel.squeeze(),audio_16k,feature_value.squeeze(0)
         else:
-            audio = torch.nn.functional.pad(audio, (0, self.segment_size - audio.size(-1)), 'constant')
-            audio_16k = torchaudio.functional.resample(audio, 24000, 16000)
-        audio = torch.FloatTensor(audio)
-        audio_16k = torch.FloatTensor(audio_16k)
-        feature_value = self.feature_extractor(audio_16k.squeeze(0), sampling_rate=16000, return_tensors="pt").input_values
-        audio = audio.unsqueeze(0)  # [B(1), self.segment_size]
-        mel = mel_spectrogram(
-                    audio,
-                    1024,
-                    100,
-                    24000,
-                    256,
-                    1024,
-                    0,
-                    None,
-                    center=False,
-                )
+            if (audio.shape[0] % 256) != 0:
+                audio = audio[: -(audio.shape[0] % self.hop_size)]
+            audio = torch.as_tensor(audio)
+            return {
+                "waveform": audio,
+                "prompt_text": self.data[i][1],
+                "infer_text": self.data[i][3],
+                "utt": self.data[i][0],
+                "audio_path": self.data[i][4],
+                "prompt_wav_path": self.data[i][2],
+            }
 
-
-        # 检查条件
-        if audio.shape[1] != mel.shape[2] * 256:
-            # 发出警告而不是错误
-            warnings.warn(
-                f"Audio length should be mel frame length * hop_size. "
-                f"Got audio shape {audio.shape} and mel shape {mel.shape}. "
-                "This may cause alignment issues."
-            )
-        return audio.squeeze(0),mel.squeeze(),audio_16k,feature_value.squeeze(0)

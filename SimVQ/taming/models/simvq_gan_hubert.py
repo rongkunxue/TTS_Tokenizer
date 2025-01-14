@@ -308,10 +308,8 @@ class VQModel(L.LightningModule):
         loss_distill = self.d_axis_distill_loss(feature, semantic_feature)
         aeloss, log_dict_ae = self.loss(loss_distill,eloss, loss_break, x, x_rec, 0, self.global_step,
                                         split="val"+ suffix)
-
         discloss, log_dict_disc = self.loss(loss_distill,eloss, loss_break, x, x_rec, 1, self.global_step,
                                             split="val" + suffix)
-        
         for ind in indices.unique():
             self.codebook_count[ind] = 1
         log_dict_ae[f"val{suffix}/codebook_util"] = torch.tensor(sum(self.codebook_count) / len(self.codebook_count))

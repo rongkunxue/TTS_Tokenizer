@@ -14,7 +14,7 @@ import math
 from pystoi import stoi
 from pathlib import Path
 from tqdm import tqdm
-from taming.data.speech import speechttsTest_en
+from taming.data.speechdataset import audioDataset
 import importlib
 from omegaconf import OmegaConf
 import argparse
@@ -81,8 +81,8 @@ def main(args):
                 "audio_path": [x["audio_path"] for x in batch],
                 "prompt_wav_path": [x["prompt_wav_path"] for x in batch]    
             }
-        speechdataset = speechttsTest_en(metalst)
-        test_loader = utils.data.DataLoader(speechdataset, batch_size=1, shuffle=False, num_workers=4, collate_fn=pad_collate_fn)
+        speechdataset = audioDataset(metalst,if_test=True)
+        test_loader = utils.data.DataLoader(speechdataset, batch_size=1, shuffle=False, num_workers=8, collate_fn=pad_collate_fn)
         paths=[]
         with torch.no_grad():
             for batch in tqdm(test_loader):
