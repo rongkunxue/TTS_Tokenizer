@@ -1,0 +1,22 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python 调试: 创建短片段数据集",
+            "type": "python",
+            "request": "launch",
+            "program": "/root/Github/TTS_Tokenizer/thirdPartyLibrary/textlesslib/examples/expresso/dataset/processing/create_short_segments_dataset.py", // 替换为实际脚本路径
+            "console": "integratedTerminal",
+            "args": [
+                "/mnt/nfs3/zhangjinouwen/dataset/emotion/expresso",
+                "/mnt/nfs3/zhangjinouwen/dataset/emotion/audio",
+                "/root/Github/TTS_Tokenizer/thirdPartyLibrary/textlesslib/examples/expresso/result.txt",
+                "--splits_dir",
+                "/root/Github/TTS_Tokenizer/thirdPartyLibrary/textlesslib/examples/expresso/dataset/processing/expresso_splits",
+                "--vad_file",
+                "/root/Github/TTS_Tokenizer/thirdPartyLibrary/textlesslib/examples/expresso/dataset/processing/expresso_VAD_segments.txt",
+                "--create_link"
+            ]
+        }
+    ]
+}

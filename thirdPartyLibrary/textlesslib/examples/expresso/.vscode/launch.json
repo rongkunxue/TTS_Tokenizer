@@ -1,0 +1,17 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python 调试: 执行操作文件",
+            "type": "python",
+            "request": "launch",
+            "program": "/root/Github/TTS_Tokenizer/thirdPartyLibrary/textlesslib/examples/expresso/dataset/processing/perform_operations.py",
+            "console": "integratedTerminal",
+            "args": [
+                "/root/Github/TTS_Tokenizer/thirdPartyLibrary/textlesslib/examples/expresso/result.txt",
+                "--n_processes",
+                "10"
+            ]
+        }
+    ]
+}
