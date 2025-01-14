@@ -10,3 +10,4 @@ core*
 events*
 *.png
 thirdPartyLibrary/hifi-gan
+checkpoint
