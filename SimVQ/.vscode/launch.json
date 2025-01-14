@@ -9,7 +9,7 @@
         "args": [
           "fit",
           "--config",
-          "/root/Github/TTS_Tokenizer/SimVQ/configs/simvq/libritts_8khz_20_bert_d_avg.yaml"
+          "/root/Github/TTS_Tokenizer/SimVQ/configs/simvq/mel/libritts_8khz_20_bert_d_avg.yaml"
         ],
         "env": {
           "XDG_CACHE_HOME": "/mnt/nfs3/zhangjinouwen/dataset/imagenet_2012",

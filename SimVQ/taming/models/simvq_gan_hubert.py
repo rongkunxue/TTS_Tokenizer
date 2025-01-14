@@ -76,10 +76,10 @@ class VQModel(L.LightningModule):
         self.conv_transpose = nn.ConvTranspose1d(
             in_channels=512,
             out_channels=768,
-            kernel_size=15,
-            stride=3,
+            kernel_size=11,
+            stride=2,
             padding=1,
-            output_padding=2,
+            output_padding=1,
         )
         self.melhead = melHead()
         self.loss = instantiate_from_config(lossconfig)
@@ -230,13 +230,13 @@ class VQModel(L.LightningModule):
     # fix mulitple optimizer bug
     # refer to https://lightning.ai/docs/pytorch/stable/model/manual_optimization.html
     def training_step(self, batch, batch_idx):
-        x,mel,x_16k,feature=batch[0],batch[1],batch[2],batch[3] 
+        x,mel,x_16k,feature_input=batch[0],batch[1],batch[2],batch[3] 
         x = x.unsqueeze(1)
         x_16k=x_16k.unsqueeze(1)
 
 
         with torch.no_grad():
-            ouput = self.hubert_model(feature, output_hidden_states=True)
+            ouput = self.hubert_model(feature_input, output_hidden_states=True)
             hidden_states = torch.stack(ouput.hidden_states, dim=0) 
             semantic_feature = torch.mean(hidden_states, dim=0)
 
