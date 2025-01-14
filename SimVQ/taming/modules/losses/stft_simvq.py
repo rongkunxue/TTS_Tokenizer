@@ -6,6 +6,18 @@ from taming.modules.discriminator.mpmr import MultiPeriodDiscriminator, MultiRes
 from taming.modules.discriminator.dac import DACDiscriminator
 from .speech_loss import MelSpecReconstructionLoss, GeneratorLoss, DiscriminatorLoss, FeatureMatchingLoss, DACGANLoss
 
+def safe_log(x: torch.Tensor, clip_val: float = 1e-7) -> torch.Tensor:
+    """
+    Computes the element-wise logarithm of the input tensor with clipping to avoid near-zero values.
+
+    Args:
+        x (Tensor): Input tensor.
+        clip_val (float, optional): Minimum value to clip the input tensor. Defaults to 1e-7.
+
+    Returns:
+        Tensor: Element-wise logarithm of the input tensor with clipping applied.
+    """
+    return torch.log(torch.clip(x, min=clip_val))
 
 class VQSTFTWithDiscriminator(nn.Module):
     def __init__(self, disc_start, codebook_weight=1.0, pixelloss_weight=1.0,
@@ -40,7 +52,7 @@ class VQSTFTWithDiscriminator(nn.Module):
         self.disc_factor = disc_factor
         self.discriminator_weight = disc_weight
                     
-    def forward(self,loss_distill, codebook_loss, loss_break, inputs, reconstructions, optimizer_idx,
+    def forward(self,loss_distill, codebook_loss, loss_break,mel,mel_rec, inputs, reconstructions, optimizer_idx,
                 global_step, last_layer=None, cond=None, split="train"):
         
         # now the GAN part
@@ -63,7 +75,10 @@ class VQSTFTWithDiscriminator(nn.Module):
             loss_fm_mrd = self.feat_matching_loss(fmap_r=fmap_rs_mrd, fmap_g=fmap_gs_mrd) / len(fmap_rs_mrd)
 
             mel_loss = self.melspec_loss(reconstructions, inputs)
-            rec_loss = mel_loss
+            
+            mel_log=safe_log(mel)
+            mel_rec_log=safe_log(mel_rec)
+            mel_rec_loss = torch.nn.functional.l1_loss(mel_log, mel_rec_log)
             
             loss = (
                 self.gen_loss_weight * (loss_gen_mp
@@ -73,13 +88,15 @@ class VQSTFTWithDiscriminator(nn.Module):
                 + self.mrd_loss_coeff * loss_fm_mrd
                 + loss_dac_1
                 + loss_dac_2)
+                + self.mel_loss_coeff * mel_rec_loss
                 + self.mel_loss_coeff * mel_loss
                 + self.commit_weight * loss_break
             )
 
             log = {"{}/total_loss".format(split): loss.clone().detach(),
                     "{}/commit_loss".format(split): loss_break.detach(),
-                    "{}/reconstruct_loss".format(split): rec_loss.detach(),
+                    "{}/mel_loss".format(split): mel_loss.detach(),
+                    "{}/mel_rec_loss".format(split): mel_rec_loss.detach(),
                     "{}/multi_period_loss".format(split): loss_gen_mp.detach(),
                     "{}/multi_res_loss".format(split): loss_gen_mrd.detach(),
                     "{}/feature_matching_mp".format(split): loss_fm_mp.detach(),
