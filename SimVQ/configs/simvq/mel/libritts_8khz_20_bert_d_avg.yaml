@@ -2,7 +2,7 @@ seed_everything: true
 trainer:
   accelerator: gpu
   strategy: ddp_find_unused_parameters_true
-  devices: 1
+  devices: [1,2,3,4]
   num_nodes: 1
   precision: 32
   max_epochs: 50
@@ -12,7 +12,7 @@ trainer:
   callbacks:
     - class_path: lightning.pytorch.callbacks.ModelCheckpoint
       init_args:
-        dirpath: "vq_audio_simvq_bert_d_avg/8k_ration_20_loss" # Please specify your own path
+        dirpath: "vq_audio_simvq_bert_mel_avg/8k_ration_20_loss" # Please specify your own path
         save_top_k: -1 # save all checkpoints
     - class_path: lightning.pytorch.callbacks.LearningRateMonitor
       init_args:
@@ -20,7 +20,7 @@ trainer:
   logger:
     class_path: lightning.pytorch.loggers.TensorBoardLogger
     init_args:
-      save_dir: "vq_audio_simvq_bert_d_avg/8k_ration_20_loss" #Please specify your own path
+      save_dir: "vq_audio_simvq_bert_mel_avg/8k_ration_20_loss" #Please specify your own path
       version: "1second"
       name: "tmp"
 
@@ -33,7 +33,7 @@ model:
       ratios: [8,8,4,4]
     
     lossconfig:
-      target: taming.modules.losses.stft_simvq.VQSTFTWithDiscriminator
+      target: taming.modules.losses.stft_simvq_mel.VQSTFTWithDiscriminator
       params:
         disc_conditional: False
         disc_in_channels: 1
