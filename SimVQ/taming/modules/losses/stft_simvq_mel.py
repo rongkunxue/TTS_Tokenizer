@@ -52,7 +52,7 @@ class VQSTFTWithDiscriminator(nn.Module):
         self.disc_factor = disc_factor
         self.discriminator_weight = disc_weight
                     
-    def forward(self,loss_distill, codebook_loss, loss_break, inputs, reconstructions, optimizer_idx,
+    def forward(self,loss_distill, codebook_loss, loss_break,mel,mel_rec, inputs, reconstructions, optimizer_idx,
                 global_step, last_layer=None, cond=None, split="train"):
         
         # now the GAN part
@@ -76,7 +76,9 @@ class VQSTFTWithDiscriminator(nn.Module):
 
             mel_loss = self.melspec_loss(reconstructions, inputs)
             
-
+            mel_log=safe_log(mel)
+            mel_rec_log=safe_log(mel_rec)
+            mel_rec_loss = torch.nn.functional.l1_loss(mel_log, mel_rec_log)
             
             loss = (
                 self.gen_loss_weight * (loss_gen_mp
@@ -86,6 +88,7 @@ class VQSTFTWithDiscriminator(nn.Module):
                 + self.mrd_loss_coeff * loss_fm_mrd
                 + loss_dac_1
                 + loss_dac_2)
+                + self.mel_loss_coeff * mel_rec_loss
                 + self.mel_loss_coeff * mel_loss
                 + self.commit_weight * loss_break
             )
@@ -93,6 +96,7 @@ class VQSTFTWithDiscriminator(nn.Module):
             log = {"{}/total_loss".format(split): loss.clone().detach(),
                     "{}/commit_loss".format(split): loss_break.detach(),
                     "{}/mel_loss".format(split): mel_loss.detach(),
+                    "{}/mel_rec_loss".format(split): mel_rec_loss.detach(),
                     "{}/multi_period_loss".format(split): loss_gen_mp.detach(),
                     "{}/multi_res_loss".format(split): loss_gen_mrd.detach(),
                     "{}/feature_matching_mp".format(split): loss_fm_mp.detach(),

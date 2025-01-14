@@ -58,7 +58,7 @@ data:
   init_args:
     batch_size: 6
     num_workers: 8
-    train_metalst : "/root/Github/TTS_Tokenizer/data/train_small.txt"
+    train_metalst : "/root/Github/TTS_Tokenizer/data/train_middle.txt"
     val_metalst : "/root/Github/TTS_Tokenizer/data/test_1500.txt"
     segement_size: 72000
 
