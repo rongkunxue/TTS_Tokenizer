@@ -54,7 +54,7 @@ model:
     use_ema: true
 
 data:
-  class_path: taming.data.speechtokenizer.SpeechTokenizerDataModule
+  class_path: taming.data.speechdataset.SpeechTokenizerDataModule
   init_args:
     batch_size: 6
     num_workers: 8
