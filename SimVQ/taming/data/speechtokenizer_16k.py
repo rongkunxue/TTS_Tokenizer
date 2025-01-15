@@ -189,14 +189,9 @@ class audioDataset(Dataset):
         audio, sr = torchaudio.load(audio_file)
         feature = torch.from_numpy(np.load(feature_file)).squeeze(0)
         audio = audio.mean(axis=0)
-        if sr == 16000:
-            audio_24k = torchaudio.functional.resample(audio, sr, 24000)
-            audio_16k = audio
-        elif sr == 24000:
-            audio_24k = audio
-            audio_16k = torchaudio.functional.resample(audio, sr, 16000)
+        if sr != 16000:
+            audio = torchaudio.functional.resample(audio, sr, 16000)
 
-        audio = audio_16k
         if audio.size(-1) > self.segment_size:
             max_audio_start = audio.size(-1) - self.segment_size
             audio_start = random.randint(0, max_audio_start)
@@ -208,10 +203,10 @@ class audioDataset(Dataset):
         audio = torch.FloatTensor(audio)
         audio = audio.unsqueeze(0)  # [B(1), self.segment_size]
         mel = mel_spectrogram(
-                    audio_24k,
+                    audio,
                     1024,
                     100,
-                    24000,
+                    16000,
                     256,
                     1024,
                     0,

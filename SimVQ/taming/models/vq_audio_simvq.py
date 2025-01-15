@@ -19,6 +19,7 @@ from vector_quantize_pytorch import SimVQ
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.nn as nn
+
 class VideoMLP(nn.Module):
     def __init__(self, input_dim, output_dim):
         super(VideoMLP, self).__init__()
@@ -89,14 +90,11 @@ class VQModel(L.LightningModule):
         self.conv_transpose = nn.ConvTranspose1d(
             in_channels=512,
             out_channels=768,
-            kernel_size=33,
+            kernel_size=34,
             stride=2,
             padding=1,
         )
-        # self.VideoMLP=VideoMLP(10,75)
-        # self.VideoConv=VideoConv(75)
         self.loss = instantiate_from_config(lossconfig)
-        
         self.audio_normalize = audio_normalize
 
         self.quantize = SimVQ(
@@ -220,9 +218,6 @@ class VQModel(L.LightningModule):
         dec = self.decode(quant)
         for ind in indices.unique():
             self.codebook_count[ind] = 1
-        # feature = rearrange(quant[0], 'b d t -> b t d')
-        # feature = self.transform(feature)
-        # feature = rearrange(feature, 'b t d -> b d t')
         feature = self.conv_transpose(quant[0])
         feature = rearrange(feature, 'b d t -> b t d')
         return dec, diff, loss_break,feature
@@ -245,15 +240,8 @@ class VQModel(L.LightningModule):
     # fix mulitple optimizer bug
     # refer to https://lightning.ai/docs/pytorch/stable/model/manual_optimization.html
     def training_step(self, batch, batch_idx):
-        _,mel,x_16k,feature=batch[0],batch[1],batch[2],batch[3] 
-        x_16k=x_16k.unsqueeze(1)
-
-        with torch.no_grad():
-            ouput = self.hubert_model(feature, output_hidden_states=True)
-            hidden_states = torch.stack(ouput.hidden_states, dim=0) 
-            semantic_feature = torch.mean(hidden_states, dim=0)
-
-        x=x_16k
+        x,semantic_feature,mel=batch[0],batch[1],batch[2]
+        x = x.unsqueeze(1)
         xrec, eloss, loss_break,feature = self(x)
         opt_gen, opt_disc = self.optimizers()
         # scheduler_gen, scheduler_disc = self.lr_schedulers()
@@ -338,8 +326,6 @@ class VQModel(L.LightningModule):
         lr = self.learning_rate
         opt_gen = torch.optim.Adam(list(self.encoder.parameters())+
                                   list(self.decoder.parameters())+
-                                # list(self.VideoConv.parameters())+
-                                # list(self.transform.parameters())+
                                   list(self.conv_transpose.parameters())+
                                   list(self.quantize.parameters())+
                                   list(self.backbone.parameters())+

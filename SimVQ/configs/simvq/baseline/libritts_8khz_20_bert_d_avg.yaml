@@ -2,7 +2,7 @@ seed_everything: true
 trainer:
   accelerator: gpu
   strategy: ddp_find_unused_parameters_true
-  devices: [0,5,6,7]
+  devices: [0,1,2,3,4,5,6,7]
   num_nodes: 1
   precision: 32
   max_epochs: 50
@@ -54,12 +54,11 @@ model:
     use_ema: true
 
 data:
-  class_path: taming.data.speechdataset.SpeechTokenizerDataModule
+  class_path: taming.data.speechtokenizer_16k.SpeechTokenizerDataModule
   init_args:
     batch_size: 6
     num_workers: 8
-    train_metalst : "/root/Github/TTS_Tokenizer/data/train_small.txt"
-    val_metalst : "/root/Github/TTS_Tokenizer/data/test_1500.txt"
-    segement_size: 72000
+    train_path : "/mnt/nfs3/zhangjinouwen/dataset/rep/rep_small_hubert_train.txt"
+    val_path : "/mnt/nfs3/zhangjinouwen/dataset/rep/ep_small_hubert_eval.txt"
 
 ckpt_path: null
