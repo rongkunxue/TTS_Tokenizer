@@ -75,6 +75,11 @@ def main(args):
                     batch_first=True, 
                     padding_value=0.
                 ).permute(0, 2, 1),
+                "waveform_16k": torch.nn.utils.rnn.pad_sequence(
+                    [x["waveform_16k"].transpose(0, 1) for x in batch], 
+                    batch_first=True, 
+                    padding_value=0.
+                ).permute(0, 2, 1),
                 "prompt_text": [x["prompt_text"] for x in batch],
                 "infer_text": [x["infer_text"] for x in batch],
                 "utt": [x["utt"] for x in batch],
@@ -92,7 +97,8 @@ def main(args):
                 infer_text = batch["infer_text"][0]
                 prompt_wav_path = batch["prompt_wav_path"][0]
                 orgin_wav_path = batch["audio_path"][0].replace("infer","wavs")
-                audio = batch["waveform"].to(DEVICE)
+                # audio = batch["waveform"].to(DEVICE)
+                audio = batch["waveform_16k"].to(DEVICE)
                 if model.use_ema:
                     with model.ema_scope():
                         quant, diff, indices, _ = model.encode(audio)

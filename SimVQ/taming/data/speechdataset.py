@@ -225,10 +225,19 @@ class audioDataset(Dataset):
             return audio.squeeze(0),mel.squeeze(),audio_16k,feature_value.squeeze(0)
         else:
             if (audio.shape[0] % 256) != 0:
-                audio = audio[: -(audio.shape[0] % self.hop_size)]
+                audio = audio[: -(audio.shape[0] % 256)]
+            audio_16k = torchaudio.functional.resample(audio, 24000, 16000)
             audio = torch.as_tensor(audio)
+            audio_16k = torch.as_tensor(audio_16k)
+            if len(audio.shape) == 1:
+                audio = audio.unsqueeze(0)
+                audio = audio.expand(1, -1)
+            if len(audio_16k.shape) == 1:
+                audio_16k = audio_16k.unsqueeze(0)
+                audio_16k = audio_16k.expand(1, -1)
             return {
                 "waveform": audio,
+                "waveform_16k": audio_16k,
                 "prompt_text": self.data[i][1],
                 "infer_text": self.data[i][3],
                 "utt": self.data[i][0],
