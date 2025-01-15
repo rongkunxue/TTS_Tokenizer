@@ -159,9 +159,9 @@ class SpeechTokenizerDataModule(L.LightningDataModule):
 
     def setup(self, stage=None):
         if stage == "fit" or stage is None:
-            self.train = audioDataset(self.train_dataset_path,65536,False)
+            self.train = audioDataset(self.train_dataset_path,48000,False)
         if stage == "test" or stage is None:
-            self.test = audioDataset(self.train_dataset_path,65536,False)
+            self.test = audioDataset(self.train_dataset_path,48000,False)
 
     def train_dataloader(self):
         return DataLoader(self.train, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=True,collate_fn=self.pad_collate_fn)
@@ -178,7 +178,6 @@ class audioDataset(Dataset):
         with open(file_path, 'r') as f:
             self.file_list = f.readlines()
         self.segment_size = segment_size
-        self.sample_rate = 24000
         self.downsample_rate = 320
         
     def __len__(self):
@@ -190,8 +189,14 @@ class audioDataset(Dataset):
         audio, sr = torchaudio.load(audio_file)
         feature = torch.from_numpy(np.load(feature_file)).squeeze(0)
         audio = audio.mean(axis=0)
-        if sr != self.sample_rate:
-            audio = torchaudio.functional.resample(audio, sr, self.sample_rate)
+        if sr == 16000:
+            audio_24k = torchaudio.functional.resample(audio, sr, 24000)
+            audio_16k = audio
+        elif sr == 24000:
+            audio_24k = audio
+            audio_16k = torchaudio.functional.resample(audio, sr, 16000)
+
+        audio = audio_16k
         if audio.size(-1) > self.segment_size:
             max_audio_start = audio.size(-1) - self.segment_size
             audio_start = random.randint(0, max_audio_start)
@@ -203,7 +208,7 @@ class audioDataset(Dataset):
         audio = torch.FloatTensor(audio)
         audio = audio.unsqueeze(0)  # [B(1), self.segment_size]
         mel = mel_spectrogram(
-                    audio,
+                    audio_24k,
                     1024,
                     100,
                     24000,
@@ -213,9 +218,6 @@ class audioDataset(Dataset):
                     None,
                     center=False,
                 )
-        assert (
-                audio.shape[1] == mel.shape[2] * 256
-            ), f"Audio length must be mel frame length * hop_size. Got audio shape {audio.shape} mel shape {mel.shape} "
         return audio.squeeze(0),feature,mel.squeeze()
     
 

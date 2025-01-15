@@ -7,8 +7,8 @@
         "request": "launch",
         "program": "${workspaceFolder}/evaluation_speech_LibriTTSTestother.py",
         "args": [
-          "--config_file","/root/Github/TTS_Tokenizer/SimVQ/vq_audio_log/8k_ration_20_loss_new/tmp/1second/config.yaml",
-          "--ckpt_path","/root/Github/TTS_Tokenizer/SimVQ/vq_audio_log/8k_ration_20_loss_new/epoch=49-step=308850.ckpt",
+          "--config_file","/root/Github/TTS_Tokenizer/SimVQ/vq_audio_simvq_bert_d_avg/8k_ration_20_loss/tmp/1second/config.yaml",
+          "--ckpt_path","/root/Github/TTS_Tokenizer/SimVQ/vq_audio_simvq_bert_d_avg/8k_ration_20_loss/epoch=49-step=69250.ckpt",
         ],
         "env": {
           "XDG_CACHE_HOME": "/mnt/nfs3/zhangjinouwen/dataset/imagenet_2012",

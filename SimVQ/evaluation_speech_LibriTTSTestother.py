@@ -14,7 +14,7 @@ import math
 from pystoi import stoi
 from pathlib import Path
 from tqdm import tqdm
-from taming.data.speechdataset import audioDataset
+from taming.data.speech import speechttsTest_en
 import importlib
 from omegaconf import OmegaConf
 import argparse
@@ -97,15 +97,22 @@ def main(args):
                 infer_text = batch["infer_text"][0]
                 prompt_wav_path = batch["prompt_wav_path"][0]
                 orgin_wav_path = batch["audio_path"][0].replace("infer","wavs")
-                # audio = batch["waveform"].to(DEVICE)
-                audio = batch["waveform_16k"].to(DEVICE)
+
+                audio = batch["waveform"].to(DEVICE)
+                # audio = batch["waveform_16k"].to(DEVICE)
+
+
                 if model.use_ema:
                     with model.ema_scope():
                         quant, diff, indices, _ = model.encode(audio)
-                        reconstructed_audios = model.decode(quant)
+
+                        #reconstructed_audios = model.decode(quant)
+                        mel,reconstructed_audios = model.decode(quant)
                 else:
                     quant, diff, indices, _ = model.encode(audio)
-                    reconstructed_audios = model.decode(quant)
+                    #reconstructed_audios = model.decode(quant)
+                    mel,reconstructed_audios = model.decode(quant)
+
                 for index in indices.flatten():
                     usage[index.item()] += 1
                     

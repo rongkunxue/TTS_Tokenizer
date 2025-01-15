@@ -198,8 +198,7 @@ class VQModel(L.LightningModule):
         dec = self.backbone(quant)
         # dec = self.VideoConv(dec)
         mel = self.melhead(dec)
-        with torch.no_grad():
-            dec = self.bigvqgan(mel)
+        dec = self.bigvqgan(mel)
         return mel,dec
 
     def forward(self, input):
