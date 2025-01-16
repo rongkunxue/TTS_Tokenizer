@@ -6,7 +6,7 @@ from torch.nn import Conv2d
 from torch.nn.utils import weight_norm
 import typing
 from typing import Optional, List, Union, Dict, Tuple
-
+from torchaudio.transforms import Spectrogram, Resample
 class MultiPeriodDiscriminator(nn.Module):
     """
     Multi-Period Discriminator module adapted from https://github.com/jik876/hifi-gan.
@@ -300,7 +300,7 @@ class DiscriminatorCQT(nn.Module):
         self.activation = torch.nn.LeakyReLU(negative_slope=0.1)
         self.resample = Resample(orig_freq=self.fs, new_freq=self.fs * 2)
 
-        self.cqtd_normalize_volume = self.cfg.get("cqtd_normalize_volume", False)
+        self.cqtd_normalize_volume = False
         if self.cqtd_normalize_volume:
             print(
                 f"[INFO] cqtd_normalize_volume set to True. Will apply DC offset removal & peak volume normalization in CQTD!"

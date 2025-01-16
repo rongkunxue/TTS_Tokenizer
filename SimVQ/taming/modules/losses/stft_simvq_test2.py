@@ -5,6 +5,7 @@ import typing as tp
 from taming.modules.discriminator.mpmr import MultiPeriodDiscriminator, MultiResolutionDiscriminator,MultiScaleSubbandCQTDiscriminator
 from taming.modules.discriminator.dac import DACDiscriminator
 from .speech_loss import MelSpecReconstructionLoss, GeneratorLoss, DiscriminatorLoss, FeatureMatchingLoss, DACGANLoss
+from torchaudio.transforms import Spectrogram, Resample
 def safe_log(x: torch.Tensor, clip_val: float = 1e-7) -> torch.Tensor:
     """
     Computes the element-wise logarithm of the input tensor with clipping to avoid near-zero values.
@@ -38,14 +39,14 @@ class VQSTFTWithDiscriminator(nn.Module):
         self.mrd_loss_coeff=mrd_loss_coeff
         
         self.multiperioddisc = MultiPeriodDiscriminator()
-        self.multiresddisc = MultiScaleSubbandCQTDiscriminator(sample_rate=16000)
+        self.multiresddisc = MultiScaleSubbandCQTDiscriminator(sample_rate=24000)
         self.dac = DACDiscriminator()
         self.dacdiscriminator = DACGANLoss(self.dac)
         self.disc_loss = DiscriminatorLoss()
         self.gen_loss = GeneratorLoss()
         self.feat_matching_loss = FeatureMatchingLoss()
         self.melspec_loss = MelSpecReconstructionLoss(sample_rate=sample_rate)
-        
+        self.Resample = Resample(orig_freq=16000,new_freq=24000)
         self.discriminator_iter_start = disc_start
         
         self.disc_factor = disc_factor
@@ -63,9 +64,13 @@ class VQSTFTWithDiscriminator(nn.Module):
             _, gen_score_mp, fmap_rs_mp, fmap_gs_mp = self.multiperioddisc(
                     y=inputs, y_hat=reconstructions
                 )
+            inputs_24k=self.Resample(inputs)
+            reconstructions_24k=self.Resample(reconstructions)
+
             _, gen_score_mrd, fmap_rs_mrd, fmap_gs_mrd = self.multiresddisc(
-                    y=inputs, y_hat=reconstructions
+                    y=inputs_24k, y_hat=reconstructions_24k
                 )
+
             loss_gen_mp, list_loss_gen_mp = self.gen_loss(disc_outputs=gen_score_mp)
             loss_gen_mrd, list_loss_gen_mrd = self.gen_loss(disc_outputs=gen_score_mrd)
             loss_gen_mp = loss_gen_mp / len(list_loss_gen_mp)

@@ -326,7 +326,7 @@ class VQModel(L.LightningModule):
 
     def configure_optimizers(self):
         num_gpus = self.trainer.num_devices
-        lr = self.learning_rate*self.batch_size*self.num_gpus/24.0
+        lr = self.learning_rate*self.batch_size*num_gpus/24.0
 
         opt_gen = torch.optim.Adam(list(self.encoder.parameters())+
                                   list(self.decoder.parameters())+
