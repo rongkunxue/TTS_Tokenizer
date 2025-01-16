@@ -75,18 +75,18 @@ def main(args):
                     batch_first=True, 
                     padding_value=0.
                 ).permute(0, 2, 1),
-                "waveform_16k": torch.nn.utils.rnn.pad_sequence(
-                    [x["waveform_16k"].transpose(0, 1) for x in batch], 
-                    batch_first=True, 
-                    padding_value=0.
-                ).permute(0, 2, 1),
+                # "waveform_16k": torch.nn.utils.rnn.pad_sequence(
+                #     [x["waveform_16k"].transpose(0, 1) for x in batch], 
+                #     batch_first=True, 
+                #     padding_value=0.
+                # ).permute(0, 2, 1),
                 "prompt_text": [x["prompt_text"] for x in batch],
                 "infer_text": [x["infer_text"] for x in batch],
                 "utt": [x["utt"] for x in batch],
                 "audio_path": [x["audio_path"] for x in batch],
                 "prompt_wav_path": [x["prompt_wav_path"] for x in batch]    
             }
-        speechdataset = audioDataset(metalst,if_test=True)
+        speechdataset = speechttsTest_en(metalst)
         test_loader = utils.data.DataLoader(speechdataset, batch_size=1, shuffle=False, num_workers=8, collate_fn=pad_collate_fn)
         paths=[]
         with torch.no_grad():
@@ -106,12 +106,12 @@ def main(args):
                     with model.ema_scope():
                         quant, diff, indices, _ = model.encode(audio)
 
-                        #reconstructed_audios = model.decode(quant)
-                        mel,reconstructed_audios = model.decode(quant)
+                        reconstructed_audios = model.decode(quant)
+                        # mel,reconstructed_audios = model.decode(quant)
                 else:
                     quant, diff, indices, _ = model.encode(audio)
-                    #reconstructed_audios = model.decode(quant)
-                    mel,reconstructed_audios = model.decode(quant)
+                    reconstructed_audios = model.decode(quant)
+                    # mel,reconstructed_audios = model.decode(quant)
 
                 for index in indices.flatten():
                     usage[index.item()] += 1

@@ -2,7 +2,7 @@ seed_everything: true
 trainer:
   accelerator: gpu
   strategy: ddp_find_unused_parameters_true
-  devices: [4,5,6,7]
+  devices: [0,1,2,3,4,5,6,7]
   num_nodes: 1
   precision: 32
   max_epochs: 50
@@ -12,7 +12,7 @@ trainer:
   callbacks:
     - class_path: lightning.pytorch.callbacks.ModelCheckpoint
       init_args:
-        dirpath: "vq_audio_simvq_bert_d_avg_4/8k_ration_20_loss" # Please specify your own path
+        dirpath: "vq_audio_simvq_bert_d_avg_imporve/8k_ration_20_loss" # Please specify your own path
         save_top_k: -1 # save all checkpoints
     - class_path: lightning.pytorch.callbacks.LearningRateMonitor
       init_args:
@@ -20,7 +20,7 @@ trainer:
   logger:
     class_path: lightning.pytorch.loggers.TensorBoardLogger
     init_args:
-      save_dir: "vq_audio_simvq_bert_d_avg_4/8k_ration_20_loss" #Please specify your own path
+      save_dir: "vq_audio_simvq_bert_d_avg_improve/8k_ration_20_loss" #Please specify your own path
       version: "1second"
       name: "tmp"
 
@@ -33,7 +33,7 @@ model:
       ratios: [8,5,5,4]
     
     lossconfig:
-      target: taming.modules.losses.stft_simvq.VQSTFTWithDiscriminator
+      target: taming.modules.losses.stft_simvq_test.VQSTFTWithDiscriminator
       params:
         disc_conditional: False
         disc_in_channels: 1
@@ -58,7 +58,7 @@ data:
   init_args:
     batch_size: 6
     num_workers: 8
-    train_path : "/mnt/nfs3/zhangjinouwen/dataset/rep/rep_small_avg_hubert_train.txt"
-    val_path : "/mnt/nfs3/zhangjinouwen/dataset/rep/rep_small_avg_hubert_eval.txt"
+    train_path : "/mnt/nfs3/zhangjinouwen/dataset/rep/rep_small_hubert_train.txt"
+    val_path : "/mnt/nfs3/zhangjinouwen/dataset/rep/ep_small_hubert_eval.txt"
 
 ckpt_path: null
