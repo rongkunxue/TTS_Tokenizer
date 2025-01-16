@@ -2,7 +2,7 @@ seed_everything: true
 trainer:
   accelerator: gpu
   strategy: ddp_find_unused_parameters_true
-  devices: [4,5,6,7]
+  devices: [0]
   num_nodes: 1
   precision: 32
   max_epochs: 50
@@ -35,13 +35,16 @@ model:
     lossconfig:
       target: taming.modules.losses.stft_simvq_mel.VQSTFTWithDiscriminator
       params:
-          cqtd_filters: 128,
-          cqtd_max_filters: 1024,
-          cqtd_filters_scale: 1,
-          cqtd_dilations: [1, 2, 4],
-          cqtd_hop_lengths: [512, 256, 256],
-          cqtd_n_octaves: [9, 9, 9],
-          cqtd_bins_per_octaves: [24, 36, 48],
+        disc_conditional: False
+        disc_in_channels: 1
+        disc_start: 0 # from 0 epoch
+        codebook_enlarge_ratio: 0
+        codebook_enlarge_steps: 2000
+        sample_rate: 16000
+        commit_weight: 1000.0
+        gen_loss_weight: 1.0
+        mel_loss_coeff: 45.0
+        mrd_loss_coeff: 1.0
     
     sample_rate: 24000
     audio_normalize: false
@@ -51,12 +54,11 @@ model:
     use_ema: true
 
 data:
-  class_path: taming.data.speechdataset.SpeechTokenizerDataModule
+  class_path: taming.data.speechtokenizer_24k.SpeechTokenizerDataModule
   init_args:
     batch_size: 6
     num_workers: 8
-    train_metalst : "/root/Github/TTS_Tokenizer/data/train_small.txt"
-    val_metalst : "/root/Github/TTS_Tokenizer/data/test_1500.txt"
-    segement_size: 65536
+    train_path : "/mnt/nfs3/zhangjinouwen/dataset/rep/rep_small_mel_hubert_train.txt"
+    val_path : "/mnt/nfs3/zhangjinouwen/dataset/rep/rep_small_mel_hubert_train.txt"
 
 ckpt_path: null

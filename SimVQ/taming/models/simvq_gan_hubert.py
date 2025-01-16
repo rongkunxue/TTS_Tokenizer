@@ -86,8 +86,8 @@ class VQModel(L.LightningModule):
         
         self.audio_normalize = audio_normalize
         self.bigvqgan = bigvgan.BigVGAN.from_pretrained('nvidia/bigvgan_v2_24khz_100band_256x', use_cuda_kernel=False)
-        self.bigvqgan.remove_weight_norm()
-        self.bigvqgan.eval()
+        # self.bigvqgan.remove_weight_norm()
+        # self.bigvqgan.eval()
         self.quantize = SimVQ(
             dim = 512,
             codebook_size = 8192,
@@ -99,9 +99,6 @@ class VQModel(L.LightningModule):
             ),
             channel_first= True
         )
-        self.hubert_model=HubertModel.from_pretrained("facebook/hubert-base-ls960",cache_dir="checkpoint").eval()
-
-
 
         self.use_ema = use_ema
         self.stage = stage
@@ -229,17 +226,8 @@ class VQModel(L.LightningModule):
     # fix mulitple optimizer bug
     # refer to https://lightning.ai/docs/pytorch/stable/model/manual_optimization.html
     def training_step(self, batch, batch_idx):
-        x,mel,x_16k,feature_input=batch[0],batch[1],batch[2],batch[3] 
+        x,semantic_feature,mel=batch[0],batch[1],batch[2]
         x = x.unsqueeze(1)
-        x_16k=x_16k.unsqueeze(1)
-
-
-        with torch.no_grad():
-            ouput = self.hubert_model(feature_input, output_hidden_states=True)
-            hidden_states = torch.stack(ouput.hidden_states, dim=0) 
-            semantic_feature = torch.mean(hidden_states, dim=0)
-
-
         mel_rec,xrec, eloss, loss_break,feature = self(x)
 
         opt_gen, opt_disc = self.optimizers()
@@ -320,15 +308,19 @@ class VQModel(L.LightningModule):
 
     def configure_optimizers(self):
         lr = self.learning_rate
-        opt_gen = torch.optim.Adam(list(self.encoder.parameters())+
-                                  list(self.decoder.parameters())+
-                                # list(self.VideoConv.parameters())+
-                                # list(self.transform.parameters())+
-                                  list(self.conv_transpose.parameters())+
-                                  list(self.quantize.parameters())+
-                                  list(self.backbone.parameters())+
-                                  list(self.melhead.parameters()),
-                                  lr=lr, betas=(0.5, 0.9))
+        opt_gen = torch.optim.Adam(
+                    list(self.encoder.parameters()) +
+                    list(self.decoder.parameters()) +
+                    # list(self.VideoConv.parameters()) +
+                    # list(self.transform.parameters()) +
+                    list(self.conv_transpose.parameters()) +
+                    list(self.quantize.parameters()) +
+                    list(self.backbone.parameters()) +
+                    list(self.melhead.parameters()) +
+                    list(self.bigvqgan.parameters()), 
+                    lr=lr,
+                    betas=(0.5, 0.9)
+                )
         opt_disc = torch.optim.Adam(list(self.loss.multiperioddisc.parameters())+
                                      list(self.loss.multiresddisc.parameters())+
                                      list(self.loss.dac.parameters()),
