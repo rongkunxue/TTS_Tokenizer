@@ -2,7 +2,7 @@ seed_everything: true
 trainer:
   accelerator: gpu
   strategy: ddp_find_unused_parameters_true
-  devices: [0,1,2,3,4,5,6,7]
+  devices: [4,5,6,7]
   num_nodes: 1
   precision: 32
   max_epochs: 50
@@ -33,7 +33,7 @@ model:
       ratios: [8,5,5,4]
     
     lossconfig:
-      target: taming.modules.losses.stft_simvq_test.VQSTFTWithDiscriminator
+      target: taming.modules.losses.stft_simvq_test2.VQSTFTWithDiscriminator
       params:
         disc_conditional: False
         disc_in_channels: 1
@@ -58,7 +58,7 @@ data:
   init_args:
     batch_size: 6
     num_workers: 8
-    train_path : "/mnt/nfs3/zhangjinouwen/dataset/rep/rep_small_hubert_train.txt"
-    val_path : "/mnt/nfs3/zhangjinouwen/dataset/rep/ep_small_hubert_eval.txt"
+    train_path : "/mnt/nfs3/zhangjinouwen/dataset/rep/rep_small_avg_hubert_train.txt"
+    val_path : "/mnt/nfs3/zhangjinouwen/dataset/rep/rep_small_avg_hubert_eval.txt"
 
 ckpt_path: null

@@ -70,6 +70,7 @@ class VQModel(L.LightningModule):
                  min_learning_rate = 0,
                  use_ema = False,
                  stage = None,
+                 batch_size = 6,
                  ):
         super().__init__()
         self.encoder = Encoder(**ddconfig)
@@ -124,6 +125,7 @@ class VQModel(L.LightningModule):
 
         if self.use_ema and stage is None: #no need to construct ema when training transformer
             self.model_ema = LitEma(self)
+        self.batch_size = batch_size
         self.learning_rate = learning_rate
         self.scheduler_type = scheduler_type
         self.warmup_epochs = warmup_epochs
@@ -323,7 +325,9 @@ class VQModel(L.LightningModule):
         return self.log_dict
 
     def configure_optimizers(self):
-        lr = self.learning_rate
+        num_gpus = self.trainer.num_devices
+        lr = self.learning_rate*self.batch_size*self.num_gpus/24.0
+
         opt_gen = torch.optim.Adam(list(self.encoder.parameters())+
                                   list(self.decoder.parameters())+
                                   list(self.conv_transpose.parameters())+

@@ -50,6 +50,7 @@ model:
     audio_normalize: false
     segment: None
     learning_rate: 1e-4
+    batch_size: 6
     scheduler_type: "None"
     use_ema: true
 
