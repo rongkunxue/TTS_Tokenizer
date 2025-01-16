@@ -2,7 +2,7 @@ seed_everything: true
 trainer:
   accelerator: gpu
   strategy: ddp_find_unused_parameters_true
-  devices: [0,1,2,3]
+  devices: [4]
   num_nodes: 1
   precision: 32
   max_epochs: 50
@@ -12,27 +12,28 @@ trainer:
   callbacks:
     - class_path: lightning.pytorch.callbacks.ModelCheckpoint
       init_args:
-        dirpath: "vq_audio_simvq_bert_mel_avg/8k_ration_20_loss" # Please specify your own path
+        dirpath: "vq_audio_simvq_bert_d_avg_4_repeat/8k_ration_20_loss" # Please specify your own path
         save_top_k: -1 # save all checkpoints
     - class_path: lightning.pytorch.callbacks.LearningRateMonitor
       init_args:
         logging_interval: step
   logger:
-    class_path: lightning.pytorch.loggers.WandbLogger
+    class_path: lightning.pytorch.loggers.TensorBoardLogger
     init_args:
-        project: "engresul_tmp"  
-        name: "mel"           
+      save_dir: "vq_audio_simvq_bert_d_avg_4_repeat/8k_ration_20_loss" #Please specify your own path
+      version: "1second"
+      name: "tmp"
 
 model:
-  class_path: taming.models.simvq_gan_hubert.VQModel
+  class_path: taming.models.vq_audio_simvq_repeat.VQModel
   init_args:
     ddconfig:
       causal: true
       dimension: 512
-      ratios: [8,8,4,4]
+      ratios: [8,5,5,4]
     
     lossconfig:
-      target: taming.modules.losses.stft_simvq_mel.VQSTFTWithDiscriminator
+      target: taming.modules.losses.stft_simvq.VQSTFTWithDiscriminator
       params:
         disc_conditional: False
         disc_in_channels: 1
@@ -45,19 +46,20 @@ model:
         mel_loss_coeff: 45.0
         mrd_loss_coeff: 1.0
     
-    sample_rate: 24000
+    sample_rate: 16000
     audio_normalize: false
     segment: None
     learning_rate: 1e-4
+    batch_size: 6
     scheduler_type: "None"
     use_ema: true
 
 data:
-  class_path: taming.data.speechtokenizer_24k.SpeechTokenizerDataModule
+  class_path: taming.data.speechtokenizer_16k.SpeechTokenizerDataModule
   init_args:
     batch_size: 6
     num_workers: 8
-    train_path : "/mnt/nfs3/zhangjinouwen/dataset/rep/rep_small_mel_hubert_train.txt"
-    val_path : "/mnt/nfs3/zhangjinouwen/dataset/rep/rep_small_mel_hubert_train.txt"
+    train_path : "/mnt/nfs3/zhangjinouwen/dataset/rep/rep_small_avg_hubert_train.txt"
+    val_path : "/mnt/nfs3/zhangjinouwen/dataset/rep/rep_small_avg_hubert_eval.txt"
 
 ckpt_path: null
