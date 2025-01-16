@@ -109,9 +109,6 @@ class VQModel(L.LightningModule):
             ),
             channel_first= True
         )
-        self.hubert_model=HubertModel.from_pretrained("facebook/hubert-base-ls960",cache_dir="checkpoint").eval()
-
-
 
         self.use_ema = use_ema
         self.stage = stage

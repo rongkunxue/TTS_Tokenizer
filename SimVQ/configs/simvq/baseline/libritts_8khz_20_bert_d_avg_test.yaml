@@ -20,7 +20,7 @@ trainer:
   logger:
     class_path: lightning.pytorch.loggers.TensorBoardLogger
     init_args:
-      save_dir: "vq_audio_simvq_bert_d_avg_improve/8k_ration_20_loss" #Please specify your own path
+      save_dir: "vq_audio_simvq_bert_d_avg_imporve/8k_ration_20_loss" #Please specify your own path
       version: "1second"
       name: "tmp"
 
