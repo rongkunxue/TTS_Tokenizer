@@ -95,10 +95,10 @@ def main(args):
                 audio = batch["waveform"].to(DEVICE)
                 if model.use_ema:
                     with model.ema_scope():
-                        quant, diff, indices, _ = model.encode(audio)
+                        quant, diff, indices, loss_break,first_quant,second_quant = model.encode(audio)
                         reconstructed_audios = model.decode(quant)
                 else:
-                    quant, diff, indices, _ = model.encode(audio)
+                    quant, diff, indices, loss_break,first_quant,second_quant = model.encode(audio)
                     reconstructed_audios = model.decode(quant)
                 for index in indices.flatten():
                     usage[index.item()] += 1

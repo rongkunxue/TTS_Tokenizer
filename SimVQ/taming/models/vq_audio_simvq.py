@@ -17,6 +17,8 @@ from taming.modules.ema import LitEma
 from einops import rearrange
 from vector_quantize_pytorch import SimVQ
 import torch.nn as nn
+from taming.modules.vqvae.improvesimvq import ResidualSimVQ
+
 
 import torch.nn as nn
 class VideoMLP(nn.Module):
@@ -100,7 +102,7 @@ class VQModel(L.LightningModule):
         self.audio_normalize = audio_normalize
         
         # self.quantize = instantiate_from_config(quantconfig)
-        self.quantize = SimVQ(
+        self.quantize = ResidualSimVQ(
             dim = 512,
             codebook_size = 8192,
             rotation_trick = True,  
@@ -109,8 +111,10 @@ class VQModel(L.LightningModule):
                 nn.ReLU(),
                 nn.Linear(1024, 512)
             ),
-            channel_first= True
+            channel_first= True,
+            num_quantizers=4,
         )
+
         self.use_ema = use_ema
         self.stage = stage
         if ckpt_path is not None:
@@ -197,8 +201,8 @@ class VQModel(L.LightningModule):
         
         h = self.encoder(x)
         # (quant, emb_loss, info), loss_breakdown = self.quantize(h)
-        quant, info, loss_breakdown = self.quantize(h)
-        return (quant, scale), torch.tensor(0.0), info, loss_breakdown
+        quant, info, loss_breakdown,first_quant,second_quant = self.quantize(h)
+        return (quant, scale), torch.tensor(0.0), info, loss_breakdown,first_quant,second_quant
 
     def decode(self, quant_tuple):
         quant, scale = quant_tuple
@@ -213,14 +217,15 @@ class VQModel(L.LightningModule):
         return dec
 
     def forward(self, input):
-        quant, diff, indices, loss_break = self.encode(input)
+        quant, diff, indices, loss_break,first_quant,second_quant = self.encode(input)
+        loss_break=sum(loss_break)
         dec = self.decode(quant)
         for ind in indices.unique():
             self.codebook_count[ind] = 1
         # feature = rearrange(quant[0], 'b d t -> b t d')
         # feature = self.transform(feature)
         # feature = rearrange(feature, 'b t d -> b d t')
-        feature = self.conv_transpose(quant[0])
+        feature = self.conv_transpose(first_quant)
         feature = rearrange(feature, 'b d t -> b t d')
         return dec, diff, loss_break,feature
     
