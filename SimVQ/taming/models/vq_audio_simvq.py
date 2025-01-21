@@ -234,15 +234,6 @@ class VQModel(L.LightningModule):
         distill_loss = - torch.log(torch.sigmoid(torch.nn.functional.cosine_similarity(feature[:, :n], target_feature[:, :n], axis=1))).mean()
         return distill_loss
 
-    def t_axis_distill_loss(feature, target_feature, lambda_sim=1):
-        n = min(feature.size(1), target_feature.size(1))
-        l1_loss = torch.functional.l1_loss(feature[:, :n], target_feature[:, :n], reduction='mean')
-        sim_loss = - torch.log(torch.sigmoid(torch.nn.functional.cosine_similarity(feature[:, :n], target_feature[:, :n], axis=-1))).mean()
-        distill_loss = l1_loss + lambda_sim * sim_loss
-        return distill_loss 
-        # def get_input(self, batch):
-        #     x = batch["waveform"].to(memory_format=torch.contiguous_format)
-        #     return x.float()
 
     # fix mulitple optimizer bug
     # refer to https://lightning.ai/docs/pytorch/stable/model/manual_optimization.html
