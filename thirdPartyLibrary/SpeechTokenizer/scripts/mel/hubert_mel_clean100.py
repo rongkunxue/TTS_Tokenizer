@@ -71,9 +71,6 @@ if __name__ == '__main__':
             if i < valid_set_size:
                 with open(valid_file_list, 'a+') as f:
                     f.write(f'{audio_file}\t{rep_file}\n')
-            else:
-                with open(train_file_list, 'a+') as f:
-                    f.write(f'{audio_file}\t{rep_file}\n')
             
             
 
