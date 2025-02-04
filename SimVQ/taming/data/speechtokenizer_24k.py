@@ -159,9 +159,14 @@ class SpeechTokenizerDataModule(L.LightningDataModule):
 
     def setup(self, stage=None):
         if stage == "fit" or stage is None:
-            self.train = audioDataset(self.train_dataset_path,65536,False)
+            train_file_list = []
+            for path in self.train_dataset_path:
+                with open(path, 'r') as f:
+                    train_file_list.extend(f.readlines())
+            random.shuffle(train_file_list)
+            self.train = audioDataset(train_file_list,65536,False)
         if stage == "test" or stage is None:
-            self.test = audioDataset(self.train_dataset_path,65536,False)
+            self.test = audioDataset(self.val_dataset_path,65536,False)
 
     def train_dataloader(self):
         return DataLoader(self.train, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=True,collate_fn=self.pad_collate_fn)
@@ -171,12 +176,11 @@ class SpeechTokenizerDataModule(L.LightningDataModule):
 
 class audioDataset(Dataset):
     def __init__(self,
-                 file_path,
+                 file_list,
                  segment_size,
                  if_val):
         super().__init__()
-        with open(file_path, 'r') as f:
-            self.file_list = f.readlines()
+        self.file_list = file_list
         self.segment_size = segment_size
         self.sample_rate = 24000
         self.downsample_rate = 320

@@ -2,7 +2,7 @@ seed_everything: true
 trainer:
   accelerator: gpu
   strategy: ddp_find_unused_parameters_true
-  devices: [0,1,2,3]
+  devices: 8
   num_nodes: 1
   precision: 32
   max_epochs: 50
@@ -12,7 +12,7 @@ trainer:
   callbacks:
     - class_path: lightning.pytorch.callbacks.ModelCheckpoint
       init_args:
-        dirpath: "vq_audio_simvq_bert_mel—2-5/8k_ration_20_loss" 
+        dirpath: "vq_audio_simvq_bert_mel/8k_ration_20_loss" 
         save_top_k: -1 # save all checkpoints
     - class_path: lightning.pytorch.callbacks.LearningRateMonitor
       init_args:
@@ -20,9 +20,9 @@ trainer:
   logger:
     class_path: lightning.pytorch.loggers.WandbLogger
     init_args:
-        save_dir: "vq_audio_simvq_bert_mel-2-5/8k_ration_20_loss" 
+        save_dir: "vq_audio_simvq_bert_mel/8k_ration_20_loss" 
         project: "endresult_tmp"  
-        name: "mel"           
+        name: "mel_big"           
 
 model:
   class_path: taming.models.vq_audio_simvq_mel.VQModel
@@ -58,7 +58,7 @@ data:
   init_args:
     batch_size: 6
     num_workers: 8
-    train_path : "/mnt/nfs3/zhangjinouwen/dataset/rep/rep_small_mel_hubert_train.txt"
+    train_path : ["/mnt/nfs3/zhangjinouwen/dataset/rep/rep_small_mel_hubert_train.txt","/mnt/nfs3/zhangjinouwen/dataset/rep/rep_middle_mel_hubert_train.txt"]
     val_path : "/mnt/nfs3/zhangjinouwen/dataset/rep/rep_small_wav_eval.txt"
 
 ckpt_path: null
