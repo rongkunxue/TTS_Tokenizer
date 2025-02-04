@@ -100,11 +100,12 @@ def main(args):
                     with model.ema_scope():
                         quant, diff, indices, loss_break,first_quant,second_quant = model.encode(audio)
 
-                        mel,reconstructed_audios = model.decode(quant[0])
+                        mel,reconstructed_audios = model.decode(first_quant)
                 else:
-                    quant, diff, indices, loss_break,first_quant,second_quant = model.encode(audio)
-                    reconstructed_audios = model.decode(quant)
-                    mel,reconstructed_audios = model.decode(quant[0])
+                    return 0
+                    # quant, diff, indices, loss_break,first_quant,second_quant = model.encode(audio)
+                    # reconstructed_audios = model.decode(quant)
+                    # mel,reconstructed_audios = model.decode(quant[0])
 
                 for index in indices.flatten():
                     usage[index.item()] += 1

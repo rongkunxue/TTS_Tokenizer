@@ -274,12 +274,12 @@ class VQModel(L.LightningModule):
         self.log_dict(log_dict_ae, prog_bar=False, logger=True, on_step=True, on_epoch=True)
     
     def on_train_batch_end(self, *args, **kwargs):
-        if self.use_ema and self.current_epoch >= 5:
+        if self.use_ema and self.current_epoch >= 10:
             self.model_ema(self)
             
     def on_train_epoch_start(self):
         self.codebook_count = [0] * 8192
-        if self.current_epoch < 5:
+        if self.current_epoch < 10:
             for param in self.bigvqgan.parameters():
                 param.requires_grad = False
         else:
