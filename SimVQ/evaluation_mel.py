@@ -3,7 +3,7 @@ import sys
 sys.path.append(os.getcwd())
 import glob
 from metrics.UTMOS import UTMOSScore
-from metrics.ss import SimScore
+# from metrics.ss import SimScore
 from metrics.periodicity import calculate_periodicity_metrics
 from metrics.wer import WERScore
 import torchaudio
@@ -14,7 +14,7 @@ import math
 from pystoi import stoi
 from pathlib import Path
 from tqdm import tqdm
-from taming.data.speech_mel import speechttsTest_en
+from taming.data.speech_24k import speechttsTest_en
 import importlib
 from omegaconf import OmegaConf
 import argparse
@@ -75,11 +75,6 @@ def main(args):
                     batch_first=True, 
                     padding_value=0.
                 ).permute(0, 2, 1),
-                # "waveform_16k": torch.nn.utils.rnn.pad_sequence(
-                #     [x["waveform_16k"].transpose(0, 1) for x in batch], 
-                #     batch_first=True, 
-                #     padding_value=0.
-                # ).permute(0, 2, 1),
                 "prompt_text": [x["prompt_text"] for x in batch],
                 "infer_text": [x["infer_text"] for x in batch],
                 "utt": [x["utt"] for x in batch],
@@ -103,13 +98,13 @@ def main(args):
 
                 if model.use_ema:
                     with model.ema_scope():
-                        quant, diff, indices, _ = model.encode(audio)
+                        quant, diff, indices, loss_break,first_quant,second_quant = model.encode(audio)
 
-                        mel,reconstructed_audios = model.decode(quant)
+                        mel,reconstructed_audios = model.decode(quant[0])
                 else:
-                    quant, diff, indices, _ = model.encode(audio)
+                    quant, diff, indices, loss_break,first_quant,second_quant = model.encode(audio)
                     reconstructed_audios = model.decode(quant)
-                    mel,reconstructed_audios = model.decode(quant)
+                    mel,reconstructed_audios = model.decode(quant[0])
 
                 for index in indices.flatten():
                     usage[index.item()] += 1
@@ -137,7 +132,7 @@ def main(args):
                         
     
     UTMOS=UTMOSScore(device=DEVICE)
-    Sim=SimScore(device=DEVICE)
+    # Sim=SimScore(device=DEVICE)
     wer=WERScore(device=DEVICE)
     utmos_sumgt=0
     utmos_sumencodec=0
@@ -195,9 +190,9 @@ def main(args):
         wer_score+=wer_s
         print("****wer",wer_s)
 
-        sim_rec =Sim.score(rawwav_16k,prewav_16k)
-        sim_rec_all+=sim_rec
-        print("****similarity_rec",sim_rec)
+        # sim_rec =Sim.score(rawwav_16k,prewav_16k)
+        # sim_rec_all+=sim_rec
+        # print("****similarity_rec",sim_rec)
 
         ## 4.STOI
         # for ljspeech
@@ -224,7 +219,7 @@ def main(args):
         print_and_save(f"PESQ: {pesq_sumpre}, {pesq_sumpre/len(paths)}", f)
         print_and_save(f"F1_score: {f1score_sumpre}, {f1score_sumpre/(len(paths)-f1score_filt)}, {f1score_filt}", f)
         print_and_save(f"STOI: {np.mean(stoi_sumpre)}", f)
-        print_and_save(f"similarity_rec: {sim_rec_all/len(paths)}", f)
+        # print_and_save(f"similarity_rec: {sim_rec_all/len(paths)}", f)
         print_and_save(f"WER: {wer_score/len(paths)}", f)
     
     

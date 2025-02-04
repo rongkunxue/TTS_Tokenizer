@@ -89,7 +89,7 @@ class VQModel(L.LightningModule):
         self.audio_normalize = audio_normalize
         self.bigvqgan = bigvgan.BigVGAN.from_pretrained('nvidia/bigvgan_v2_24khz_100band_256x', use_cuda_kernel=False)
 
-        self.quantize = SimVQ(
+        self.quantize = ResidualSimVQ(
             dim = 512,
             codebook_size = 8192,
             rotation_trick = True,  
@@ -98,7 +98,8 @@ class VQModel(L.LightningModule):
                 nn.ReLU(),
                 nn.Linear(1024, 512)
             ),
-            channel_first= True
+            channel_first= True,
+            num_quantizers=2,
         )
 
         self.use_ema = use_ema
@@ -187,11 +188,10 @@ class VQModel(L.LightningModule):
         
         h = self.encoder(x)
         # (quant, emb_loss, info), loss_breakdown = self.quantize(h)
-        quant, info, loss_breakdown = self.quantize(h)
-        return (quant, scale), torch.tensor(0.0), info, loss_breakdown
+        quant, info, loss_breakdown,first_quant,second_quant = self.quantize(h)
+        return (quant, scale), torch.tensor(0.0), info, loss_breakdown,first_quant,second_quant
 
-    def decode(self, quant_tuple):
-        quant, scale = quant_tuple
+    def decode(self, quant):
         #dec = self.decoder(quant)
         dec = self.backbone(quant)
         # dec = self.VideoConv(dec)
@@ -200,12 +200,16 @@ class VQModel(L.LightningModule):
         return mel,dec
 
     def forward(self, input):
-        quant, diff, indices, loss_break = self.encode(input)
-        mel,dec = self.decode(quant)
+        quant, diff, indices, loss_break,first_quant,second_quant = self.encode(input)
+        loss_break=sum(loss_break)
+        mel,dec = self.decode(first_quant)
 
         for ind in indices.unique():
             self.codebook_count[ind] = 1
-        feature = self.conv_transpose(quant[0])
+        # feature = rearrange(quant[0], 'b d t -> b t d')
+        # feature = self.transform(feature)
+        # feature = rearrange(feature, 'b t d -> b d t')
+        feature = self.conv_transpose(first_quant)
         feature = rearrange(feature, 'b d t -> b t d')
         return mel,dec, diff, loss_break,feature
     
@@ -270,11 +274,17 @@ class VQModel(L.LightningModule):
         self.log_dict(log_dict_ae, prog_bar=False, logger=True, on_step=True, on_epoch=True)
     
     def on_train_batch_end(self, *args, **kwargs):
-        if self.use_ema:
+        if self.use_ema and self.current_epoch >= 5:
             self.model_ema(self)
             
     def on_train_epoch_start(self):
         self.codebook_count = [0] * 8192
+        if self.current_epoch < 5:
+            for param in self.bigvqgan.parameters():
+                param.requires_grad = False
+        else:
+            for param in self.bigvqgan.parameters():
+                param.requires_grad = True
         
     def on_validation_epoch_start(self):
         self.codebook_count = [0] * 8192

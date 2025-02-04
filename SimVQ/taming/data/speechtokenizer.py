@@ -44,10 +44,15 @@ class SpeechTokenizerDataModule(L.LightningDataModule):
 
     def setup(self, stage=None):
         if stage == "fit" or stage is None:
-            self.train = audioDataset(self.train_dataset_path,48000,False)
+            train_file_list = []
+            for path in self.train_dataset_paths:
+                with open(path, 'r') as f:
+                    train_file_list.extend(f.readlines())
+            random.shuffle(train_file_list)
+            self.train = audioDataset(train_file_list,48000,False)
         if stage == "test" or stage is None:
-            self.test = audioDataset(self.train_dataset_path,48000,False)
-
+            self.test = audioDataset(self.val_dataset_path,48000,False)
+            
     def train_dataloader(self):
         return DataLoader(self.train, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=True,collate_fn=self.pad_collate_fn)
 
