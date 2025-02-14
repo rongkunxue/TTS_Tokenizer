@@ -164,32 +164,32 @@ def main(args):
     
         # breakpoint()
 
-        ## 2.PESQ  
-        min_len=min(rawwav_16k.size()[1],prewav_16k.size()[1])
-        rawwav_16k_pesq=rawwav_16k[:,:min_len].squeeze(0)
-        prewav_16k_pesq=prewav_16k[:,:min_len].squeeze(0)
-        pesq_score = pesq(16000, rawwav_16k_pesq.cpu().numpy(), prewav_16k_pesq.cpu().numpy(), "wb", on_error=1)
-        print("****PESQ",i,pesq_score)
-        pesq_sumpre+=pesq_score
-        # breakpoint()
+        # ## 2.PESQ  
+        # min_len=min(rawwav_16k.size()[1],prewav_16k.size()[1])
+        # rawwav_16k_pesq=rawwav_16k[:,:min_len].squeeze(0)
+        # prewav_16k_pesq=prewav_16k[:,:min_len].squeeze(0)
+        # pesq_score = pesq(16000, rawwav_16k_pesq.cpu().numpy(), prewav_16k_pesq.cpu().numpy(), "wb", on_error=1)
+        # print("****PESQ",i,pesq_score)
+        # pesq_sumpre+=pesq_score
+        # # breakpoint()
 
-        ## 3.F1-score
-        min_len=min(rawwav_16k.size()[1],prewav_16k.size()[1])
-        rawwav_16k_f1score=rawwav_16k[:,:min_len]
-        prewav_16k_f1score=prewav_16k[:,:min_len]
-        periodicity_loss, pitch_loss, f1_score = calculate_periodicity_metrics(rawwav_16k_f1score,prewav_16k_f1score)
-        print("****f1",periodicity_loss, pitch_loss, f1_score,f1score_sumpre)
-        if(math.isnan(f1_score)):
-            f1score_filt+=1
-            print("*****",f1score_filt)
-        else:
-            f1score_sumpre+=f1_score
-        # breakpoint()
+        # ## 3.F1-score
+        # min_len=min(rawwav_16k.size()[1],prewav_16k.size()[1])
+        # rawwav_16k_f1score=rawwav_16k[:,:min_len]
+        # prewav_16k_f1score=prewav_16k[:,:min_len]
+        # periodicity_loss, pitch_loss, f1_score = calculate_periodicity_metrics(rawwav_16k_f1score,prewav_16k_f1score)
+        # print("****f1",periodicity_loss, pitch_loss, f1_score,f1score_sumpre)
+        # if(math.isnan(f1_score)):
+        #     f1score_filt+=1
+        #     print("*****",f1score_filt)
+        # else:
+        #     f1score_sumpre+=f1_score
+        # # breakpoint()
 
-        text=paths[i].split("|")[3]
-        wer_s = wer.score_en(prewav_16k,text)
-        wer_score+=wer_s
-        print("****wer",wer_s)
+        # text=paths[i].split("|")[3]
+        # wer_s = wer.score_en(prewav_16k,text)
+        # wer_score+=wer_s
+        # print("****wer",wer_s)
 
         # sim_rec =Sim.score(rawwav_16k,prewav_16k)
         # sim_rec_all+=sim_rec
@@ -206,22 +206,22 @@ def main(args):
         # stoi_sumpre.append(tmp_stoi)
         # # breakpoint()
 
-        min_len=min(rawwav.size()[1],prewav.size()[1])
-        rawwav_stoi=rawwav[:,:min_len].squeeze(0)
-        prewav_stoi=prewav[:,:min_len].squeeze(0)
-        tmp_stoi=stoi(rawwav_stoi.cpu(),prewav_stoi.cpu(),rawwav_sr,extended=False)
-        print("****stoi",tmp_stoi)
-        stoi_sumpre.append(tmp_stoi)
+        # min_len=min(rawwav.size()[1],prewav.size()[1])
+        # rawwav_stoi=rawwav[:,:min_len].squeeze(0)
+        # prewav_stoi=prewav[:,:min_len].squeeze(0)
+        # tmp_stoi=stoi(rawwav_stoi.cpu(),prewav_stoi.cpu(),rawwav_sr,extended=False)
+        # print("****stoi",tmp_stoi)
+        # stoi_sumpre.append(tmp_stoi)
         
         
     with open(Path(args.ckpt_path).parent / "test_other_result.txt", 'w') as f:
         print_and_save(f"UTMOS_raw: {utmos_sumgt}, {utmos_sumgt/len(paths)}", f)
         print_and_save(f"UTMOS_encodec: {utmos_sumgt}, {utmos_sumencodec/len(paths)}", f)
-        print_and_save(f"PESQ: {pesq_sumpre}, {pesq_sumpre/len(paths)}", f)
-        print_and_save(f"F1_score: {f1score_sumpre}, {f1score_sumpre/(len(paths)-f1score_filt)}, {f1score_filt}", f)
-        print_and_save(f"STOI: {np.mean(stoi_sumpre)}", f)
-        # print_and_save(f"similarity_rec: {sim_rec_all/len(paths)}", f)
-        print_and_save(f"WER: {wer_score/len(paths)}", f)
+        # print_and_save(f"PESQ: {pesq_sumpre}, {pesq_sumpre/len(paths)}", f)
+        # print_and_save(f"F1_score: {f1score_sumpre}, {f1score_sumpre/(len(paths)-f1score_filt)}, {f1score_filt}", f)
+        # print_and_save(f"STOI: {np.mean(stoi_sumpre)}", f)
+        # # print_and_save(f"similarity_rec: {sim_rec_all/len(paths)}", f)
+        # print_and_save(f"WER: {wer_score/len(paths)}", f)
     
     
 def get_args():

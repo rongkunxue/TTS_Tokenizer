@@ -96,6 +96,19 @@ class ResidualSimVQ(Module):
         codebooks = torch.stack(codebooks)
         return codebooks
 
+
+    def indices_to_codes(
+        self,
+        indices
+    ):
+        frozen_codes = get_at('[c] d, b ... -> b ... d', self.layers[0].frozen_codebook, indices)
+        quantized = self.layers[0].code_transform(frozen_codes)
+        if self.channel_first:
+            quantized = rearrange(quantized, 'b ... d -> b d ...')
+
+        return quantized
+    
+
     def get_codes_from_indices(self, indices):
 
         batch, quantize_dim = indices.shape[0], indices.shape[-1]
@@ -115,7 +128,7 @@ class ResidualSimVQ(Module):
 
         mask = indices == -1.
         indices = indices.masked_fill(mask, 0) # have it fetch a dummy code to be masked out later
-
+        
         all_codes = get_at('q [c] d, b n q -> q b n d', self.codebooks, indices)
 
         # mask out any codes that were dropout-ed
@@ -131,6 +144,9 @@ class ResidualSimVQ(Module):
 
         return all_codes
 
+    # def get_codec_from_first_indices(self, indices):
+        
+    
     def get_output_from_indices(self, indices):
         all_codes = self.get_codes_from_indices(indices)
         summed_residual_codes = reduce(all_codes, 'q ... -> ...', 'sum')
@@ -202,6 +218,8 @@ class ResidualSimVQ(Module):
             quantized_out = quantized_out + quantized
 
             embed_indices, loss = rest
+            if quantizer_index == 0:
+                first_index = embed_indices
 
             all_indices.append(embed_indices)
             all_losses.append(loss)
@@ -210,7 +228,7 @@ class ResidualSimVQ(Module):
 
         all_losses, all_indices = map(partial(torch.stack, dim = -1), (all_losses, all_indices))
 
-        ret = (quantized_out, all_indices, all_losses,first_quantized,second_quantized)
+        ret = (quantized_out, all_indices, all_losses,first_quantized,second_quantized,first_index)
 
         if not return_all_codes:
             return ret
@@ -218,6 +236,7 @@ class ResidualSimVQ(Module):
         # whether to return all codes from all codebooks across layers
 
         all_codes = self.get_codes_from_indices(all_indices)
+
 
         # will return all codes in shape (quantizer, batch, sequence length, codebook dimension)
 

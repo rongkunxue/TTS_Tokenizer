@@ -188,8 +188,8 @@ class VQModel(L.LightningModule):
         
         h = self.encoder(x)
         # (quant, emb_loss, info), loss_breakdown = self.quantize(h)
-        quant, info, loss_breakdown,first_quant,second_quant = self.quantize(h)
-        return (quant, scale), torch.tensor(0.0), info, loss_breakdown,first_quant,second_quant
+        quant, info, loss_breakdown,first_quant,second_quant,first_index = self.quantize(h)
+        return (quant, scale), torch.tensor(0.0), info, loss_breakdown,first_quant,second_quant,first_index
 
     def decode(self, quant):
         #dec = self.decoder(quant)
@@ -200,7 +200,7 @@ class VQModel(L.LightningModule):
         return mel,dec
 
     def forward(self, input):
-        quant, diff, indices, loss_break,first_quant,second_quant = self.encode(input)
+        quant, diff, indices, loss_break,first_quant,second_quant,first_index = self.encode(input)
         loss_break=sum(loss_break)
         mel,dec = self.decode(first_quant)
 
@@ -274,12 +274,12 @@ class VQModel(L.LightningModule):
         self.log_dict(log_dict_ae, prog_bar=False, logger=True, on_step=True, on_epoch=True)
     
     def on_train_batch_end(self, *args, **kwargs):
-        if self.use_ema and self.current_epoch >= 10:
+        if self.use_ema and self.current_epoch >= 15:
             self.model_ema(self)
             
     def on_train_epoch_start(self):
         self.codebook_count = [0] * 8192
-        if self.current_epoch < 10:
+        if self.current_epoch < 15:
             for param in self.bigvqgan.parameters():
                 param.requires_grad = False
         else:

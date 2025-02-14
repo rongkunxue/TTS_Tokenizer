@@ -13,43 +13,43 @@ import torch.nn as nn
 
 from .conv import SConv1d, SConvTranspose1d
 
-class SLSTM(nn.Module):
-    """
-    LSTM without worrying about the hidden state, nor the layout of the data.
-    Expects input as convolutional layout.
-    """
-    def __init__(self, dimension: int, num_layers: int = 2, skip: bool = True, bidirectional: bool=False):
-        super().__init__()
-        self.bidirectional = bidirectional
-        self.skip = skip
-        self.lstm = nn.LSTM(dimension, dimension, num_layers, bidirectional=bidirectional)
-
-    def forward(self, x):
-        x = x.permute(2, 0, 1)
-        y, _ = self.lstm(x)
-        if self.bidirectional:
-            x = x.repeat(1, 1, 2)
-        if self.skip:
-            y = y + x
-        y = y.permute(1, 2, 0)
-        return y
 # class SLSTM(nn.Module):
 #     """
 #     LSTM without worrying about the hidden state, nor the layout of the data.
 #     Expects input as convolutional layout.
 #     """
-#     def __init__(self, dimension: int, num_layers: int = 2, skip: bool = True):
+#     def __init__(self, dimension: int, num_layers: int = 2, skip: bool = True, bidirectional: bool=False):
 #         super().__init__()
+#         self.bidirectional = bidirectional
 #         self.skip = skip
-#         self.lstm = nn.LSTM(dimension, dimension, num_layers)
+#         self.lstm = nn.LSTM(dimension, dimension, num_layers, bidirectional=bidirectional)
 
 #     def forward(self, x):
 #         x = x.permute(2, 0, 1)
 #         y, _ = self.lstm(x)
+#         if self.bidirectional:
+#             x = x.repeat(1, 1, 2)
 #         if self.skip:
 #             y = y + x
 #         y = y.permute(1, 2, 0)
 #         return y
+class SLSTM(nn.Module):
+    """
+    LSTM without worrying about the hidden state, nor the layout of the data.
+    Expects input as convolutional layout.
+    """
+    def __init__(self, dimension: int, num_layers: int = 2, skip: bool = True):
+        super().__init__()
+        self.skip = skip
+        self.lstm = nn.LSTM(dimension, dimension, num_layers)
+
+    def forward(self, x):
+        x = x.permute(2, 0, 1)
+        y, _ = self.lstm(x)
+        if self.skip:
+            y = y + x
+        y = y.permute(1, 2, 0)
+        return y
 
 
 class SEANetResnetBlock(nn.Module):
@@ -126,7 +126,7 @@ class SEANetEncoder(nn.Module):
                  ratios: tp.List[int] = [8, 5, 4, 2], activation: str = 'ELU', activation_params: dict = {'alpha': 1.0},
                  norm: str = 'weight_norm', norm_params: tp.Dict[str, tp.Any] = {}, kernel_size: int = 7,
                  last_kernel_size: int = 7, residual_kernel_size: int = 3, dilation_base: int = 2, causal: bool = False,
-                 pad_mode: str = 'reflect', true_skip: bool = False, compress: int = 2, lstm: int = 2,bidirectional=True):
+                 pad_mode: str = 'reflect', true_skip: bool = False, compress: int = 2, lstm: int = 2,bidirectional=False):
         super().__init__()
         self.channels = channels
         self.dimension = dimension
@@ -164,7 +164,7 @@ class SEANetEncoder(nn.Module):
             mult *= 2
 
         if lstm:
-            model += [SLSTM(mult * n_filters, num_layers=lstm,bidirectional=bidirectional)]
+            model += [SLSTM(mult * n_filters, num_layers=lstm)]
        
         mult = mult * 2 if bidirectional else mult
 
