@@ -3,7 +3,6 @@ import sys
 sys.path.append(os.getcwd())
 import glob
 import torchaudio
-from pesq import pesq
 import numpy as np
 import torch
 import math
@@ -35,8 +34,8 @@ def create_model(config_path, ckpt_path=None,is_gumbel=False):
 
 
 def main():
-    config_path="/root/Github/TTS_Tokenizer/SimVQ/vq_audio_simvq_bert_mel/8k_ration_20_loss/config.yaml"
-    ckpt_path="/root/Github/TTS_Tokenizer/SimVQ/vq_audio_simvq_bert_mel/8k_ration_20_loss/epoch=49-step=156000.ckpt"
+    config_path="/root/Github/TTS_Tokenizer/SimVQ/EffiencyTokenzier/config.yaml"
+    ckpt_path="/root/Github/TTS_Tokenizer/SimVQ/EffiencyTokenzier/epoch=49-step=156000.ckpt"
     model = create_model(config_path,ckpt_path).to(DEVICE)
     import librosa
     waveform, sample_rate = librosa.load(
