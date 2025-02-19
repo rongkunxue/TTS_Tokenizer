@@ -39,7 +39,7 @@ def main():
     model = create_model(config_path,ckpt_path).to(DEVICE)
     import librosa
     waveform, sample_rate = librosa.load(
-            "/mnt/nfs3/zhangjinouwen/dataset/LibriTTS/test-other/8461/278226/8461_278226_000023_000000.wav", 
+            "/mnt/nfs3/zhangjinouwen/dataset/LibriTTS/train-clean-100/1098/133695/1098_133695_000003_000004.wav", 
             sr=24000,
             mono=1 == 1
         )

@@ -29,8 +29,8 @@ class speechttsBase(Dataset):
             sr=self.sample_rate,
             mono=self.channels == 1
         )
-        if (waveform.shape[0] % 256) != 0:
-            waveform = waveform[: -(waveform.shape[0] % 256)]
+        # if (waveform.shape[0] % 256) != 0:
+        #     waveform = waveform[: -(waveform.shape[0] % 256)]
         waveform = torch.as_tensor(waveform)
         
         if len(waveform.shape) == 1:
