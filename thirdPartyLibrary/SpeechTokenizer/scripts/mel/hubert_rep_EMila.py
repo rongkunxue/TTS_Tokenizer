@@ -14,7 +14,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', '-c', type=str, default="config/spt_base_cfg.json")
     parser.add_argument('--rep_dir', type=str, default="/mnt/nfs3/zhangjinouwen/dataset/rep/rep_small_avg_hubert")
-    parser.add_argument('--exts', type=str, help="Audio file extensions, splitting with ','", default='flac')
+    parser.add_argument('--exts', type=str, help="Audio file extensions, splitting with ','", default='mp3')
     parser.add_argument('--split_seed', type=int, help="Random seed", default=0)
     parser.add_argument('--valid_set_size', type=float, default=1500)
     args = parser.parse_args()
@@ -23,11 +23,12 @@ if __name__ == '__main__':
     with open(args.config) as f:
         cfg = json.load(f)
     sample_rate = cfg.get('sample_rate')
+    print(sample_rate)
     feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained("facebook/hubert-base-ls960",cache_dir="/root/Github/TTS_Tokenizer/thirdPartyLibrary/SpeechTokenizer/checkpoint")
     model = HubertModel.from_pretrained("facebook/hubert-base-ls960",cache_dir="/root/Github/TTS_Tokenizer/thirdPartyLibrary/SpeechTokenizer/checkpoint").eval().to(device)
     target_layer = "avg"
     
-    path2 = Path("/root/dataset/wav48_silence_trimmed")
+    path2 = Path("/mnt/nfs3/zhangjinouwen/dataset/checkpoint")
 
     file_list = [
         str(file) for ext in exts 
@@ -38,7 +39,7 @@ if __name__ == '__main__':
         valid_set_size = int(len(file_list) * args.valid_set_size)
     else:
         valid_set_size = int(args.valid_set_size)
-    train_file_list = "/mnt/nfs3/zhangjinouwen/dataset/rep/rep_vc_mel_hubert_train.txt"
+    train_file_list = "/mnt/nfs3/zhangjinouwen/dataset/rep/rep_Emila1_mel_hubert_train.txt"
     # valid_file_list = "/mnt/nfs3/zhangjinouwen/dataset/rep/rep_middle_mel_hubert_eval.txt"
     segment_size = 65536
     random.seed(args.split_seed)
@@ -48,6 +49,7 @@ if __name__ == '__main__':
         for i, audio_file in tqdm(enumerate(file_list)):
             wav_24k, sr = torchaudio.load(audio_file)
             if sr != 24000:
+                print (sr)
                 wav_24k = torchaudio.functional.resample(wav_24k, sr, 24000)
             if wav_24k.size(-1) < segment_size:
                 wav_24k = torch.nn.functional.pad(wav_24k, (0, segment_size - wav_24k.size(-1)), 'constant')
@@ -62,7 +64,7 @@ if __name__ == '__main__':
             #     rep = ouput.hidden_states[target_layer]
 
             if str(path2) in audio_file:
-                rep_file = audio_file.replace(str(path2), f"{args.rep_dir}/vc").split('.')[0] +'.hubert.npy'
+                rep_file = audio_file.replace(str(path2), f"{args.rep_dir}/emila1").split('.')[0] +'.hubert.npy'
             
             rep_sub_dir = '/'.join(rep_file.split('/')[:-1])
             if not os.path.exists(rep_sub_dir):

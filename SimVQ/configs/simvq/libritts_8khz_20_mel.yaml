@@ -58,7 +58,7 @@ data:
   init_args:
     batch_size: 6
     num_workers: 8
-    train_path : ["/mnt/nfs3/zhangjinouwen/dataset/rep/rep_small_mel_hubert_train.txt","/mnt/nfs3/zhangjinouwen/dataset/rep/rep_middle_mel_hubert_train.txt"]
+    train_path : ["/mnt/nfs3/zhangjinouwen/dataset/rep/rep_small_mel_hubert_train.txt","/mnt/nfs3/zhangjinouwen/dataset/rep/rep_middle_mel_hubert_train.txt","/mnt/nfs3/zhangjinouwen/dataset/rep/rep_Emila1_mel_hubert_train.txt","/mnt/nfs3/zhangjinouwen/dataset/rep/rep_vc_mel_hubert_train.txt"]
     val_path : "/mnt/nfs3/zhangjinouwen/dataset/rep/rep_small_wav_eval.txt"
 
 ckpt_path: null
