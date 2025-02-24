@@ -1,0 +1,1 @@
+similarity_rec: tensor([0.9850], device='cuda:1')

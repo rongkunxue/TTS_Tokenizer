@@ -15,3 +15,5 @@ wandb
 !taming/models/vq_audio_simvq_repeat.py
 eve*
 !taming/models/vq_audio_simvq_mel.py
+/root/Github/TTS_Tokenizer/SimVQ/data/*
+/root/Github/TTS_Tokenizer/SimVQ/test
