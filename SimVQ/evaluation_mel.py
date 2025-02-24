@@ -98,7 +98,7 @@ def main(args):
 
                 if model.use_ema:
                     with model.ema_scope():
-                        quant, diff, indices, loss_break,first_quant,second_quant = model.encode(audio)
+                        quant, diff, indices, loss_break,first_quant,second_quant,first_index = model.encode(audio)
 
                         mel,reconstructed_audios = model.decode(first_quant)
                 else:
