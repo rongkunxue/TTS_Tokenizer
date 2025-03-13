@@ -32,10 +32,8 @@ class melHead(nn.Module):
         self.transconv = nn.ConvTranspose1d(
             in_channels=768, 
             out_channels=100,  
-            kernel_size=4,                
-            stride=4,  
-            padding=0,
-            output_padding=0,
+            kernel_size=2,                
+            stride=2,  
         )
 
     def forward(self, x):
@@ -78,10 +76,8 @@ class VQModel(L.LightningModule):
         self.conv_transpose = nn.ConvTranspose1d(
             in_channels=512,
             out_channels=768,
-            kernel_size=11,
-            stride=2,
-            padding=1,
-            output_padding=1,
+            kernel_size=9,
+            stride=1,
         )
         self.melhead = melHead()
         self.loss = instantiate_from_config(lossconfig)

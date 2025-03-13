@@ -15,3 +15,4 @@ wandb
 !taming/models/vq_audio_simvq_repeat.py
 eve*
 !taming/models/vq_audio_simvq_mel.py
+Codec

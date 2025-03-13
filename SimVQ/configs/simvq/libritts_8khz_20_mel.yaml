@@ -30,7 +30,7 @@ model:
     ddconfig:
       causal: true
       dimension: 512
-      ratios: [8,8,4,4]
+      ratios: [8,4,4,4]
     
     lossconfig:
       target: taming.modules.losses.stft_simvq_mel.VQSTFTWithDiscriminator
